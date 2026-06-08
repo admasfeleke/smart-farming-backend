@@ -84,6 +84,11 @@ class SoilHealth extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    public function assignments()
+    {
+        return $this->hasMany(CaseAssignment::class);
+    }
+
     /**
      * Scope to get soil health data by test method
      */

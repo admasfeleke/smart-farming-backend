@@ -54,17 +54,22 @@ class FarmersOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('name')
                     ->label('Farmer Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Phone')
                     ->placeholder('—')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('region.name')
                     ->label('Region')
                     ->placeholder('—')
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('farms_count')
                     ->label('Farms')
@@ -77,7 +82,8 @@ class FarmersOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Registered On')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([

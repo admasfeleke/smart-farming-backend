@@ -41,7 +41,9 @@ class DelegationOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('name')
                     ->label('Full Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('role.name')
                     ->label('Role')
@@ -64,7 +66,9 @@ class DelegationOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('region.name')
                     ->label('Primary Region')
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('scoped_regions_count')
                     ->label('Extra Scopes')
@@ -77,7 +81,8 @@ class DelegationOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')

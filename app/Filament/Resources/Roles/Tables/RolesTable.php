@@ -22,7 +22,8 @@ class RolesTable
 
                 Tables\Columns\TextColumn::make('description')
                     ->label('Description')
-                    ->limit(90)
+                    ->limit(56)
+                    ->wrap()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('users_count')

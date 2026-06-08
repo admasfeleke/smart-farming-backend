@@ -53,20 +53,22 @@ class CaseAuditLogsOverview extends Page implements HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('Log #')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('entity_type')
                     ->badge()
                     ->label('Entity'),
                 Tables\Columns\TextColumn::make('entity_id')
-                    ->label('Entity ID'),
+                    ->label('Entity ID')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('action')
                     ->badge(),
                 Tables\Columns\TextColumn::make('from_status')
                     ->label('From')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('to_status')
                     ->label('To')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('actor.name')
                     ->label('Actor')
                     ->searchable(),
@@ -75,9 +77,10 @@ class CaseAuditLogsOverview extends Page implements HasTable
                     ->badge(),
                 Tables\Columns\TextColumn::make('actor_region_id')
                     ->label('Actor Region')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('note')
-                    ->limit(80)
+                    ->limit(56)
+                    ->wrap()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Timestamp')

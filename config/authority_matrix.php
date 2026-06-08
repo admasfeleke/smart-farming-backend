@@ -111,9 +111,6 @@ return [
             'farmer' => ['*'],
         ],
         'disease_report.verify' => [
-            'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
             'expert' => ['region', 'zone', 'woreda', 'kebele'],
         ],
 
@@ -187,9 +184,6 @@ return [
             'farmer' => ['*'],
         ],
         'soil_health.verify' => [
-            'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
             'expert' => ['region', 'zone', 'woreda', 'kebele'],
         ],
 

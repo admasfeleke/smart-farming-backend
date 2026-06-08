@@ -31,7 +31,7 @@ class CaseAssignmentPolicy
         }
 
         if ($this->isAdminRole($user)) {
-            return AuthorityMatrix::canInRegion($user, 'case_assignment.view', $assignment->diseaseReport?->plot?->farm?->region_id);
+            return AuthorityMatrix::canInRegion($user, 'case_assignment.view', $assignment->caseRegionId());
         }
 
         if ($this->isSupportRole($user)) {

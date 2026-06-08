@@ -14,6 +14,7 @@ use App\Models\Planting;
 use App\Models\Plot;
 use App\Models\User;
 use App\Services\CaseAuditLogger;
+use App\Services\CaseAssignmentService;
 use App\Services\InferencePipelineService;
 use App\Support\RegionScope;
 use Illuminate\Database\QueryException;
@@ -323,7 +324,7 @@ class DiseaseReportController extends Controller
             'client_submission_id' => $submissionId,
         ]);
 
-        $this->autoAssignReportForReview($report);
+        app(CaseAssignmentService::class)->autoAssignDiseaseReport($report);
 
         try {
             ProcessDiseaseReportScan::dispatch($report->id, $imagePath)

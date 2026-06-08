@@ -68,21 +68,30 @@ class SlaBreachesOverview extends Page implements HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('Case #')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('diseaseReportFinding')
                     ->label('Finding')
                     ->state(fn (CaseAssignment $record): string => $record->diseaseReport?->backofficeFindingName() ?? 'Awaiting analysis')
                     ->description(fn (CaseAssignment $record): string => ucfirst($record->diseaseReport?->backofficeFindingStage() ?? 'pending'))
                     ->wrap()
+                    ->limit(56)
                     ->searchable(),
                 Tables\Columns\TextColumn::make('diseaseReport.crop.name')
                     ->label('Crop'),
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.farm_name')
-                    ->label('Farm'),
+                    ->label('Farm')
+                    ->wrap()
+                    ->limit(32),
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.region.name')
-                    ->label('Region'),
+                    ->label('Region')
+                    ->wrap()
+                    ->limit(32)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('assignedTo.name')
-                    ->label('Assigned To'),
+                    ->label('Assigned To')
+                    ->wrap()
+                    ->limit(28),
                 Tables\Columns\TextColumn::make('priority')
                     ->badge()
                     ->colors([
@@ -98,7 +107,8 @@ class SlaBreachesOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Assigned At')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
                 Action::make('mark_completed')

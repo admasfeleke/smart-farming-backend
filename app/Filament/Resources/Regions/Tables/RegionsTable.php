@@ -14,7 +14,9 @@ class RegionsTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(40),
 
                 TextColumn::make('level')
                     ->badge()
@@ -23,7 +25,9 @@ class RegionsTable
                 TextColumn::make('parent.name')
                     ->label('Parent')
                     ->sortable()
-                    ->toggleable(),
+                    ->wrap()
+                    ->limit(36)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('is_active')
                     ->boolean()
@@ -31,7 +35,8 @@ class RegionsTable
 
                 TextColumn::make('created_at')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc');
     }

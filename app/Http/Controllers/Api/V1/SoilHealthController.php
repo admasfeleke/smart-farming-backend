@@ -9,6 +9,7 @@ use App\Models\Farm;
 use App\Models\Region;
 use App\Models\User;
 use App\Services\InferencePipelineService;
+use App\Services\CaseAssignmentService;
 use App\Support\ApiLocalizer;
 use App\Support\RegionScope;
 use Illuminate\Http\Request;
@@ -144,6 +145,7 @@ class SoilHealthController extends Controller
         $data['reviewed_at'] = $isReviewer ? now() : null;
 
         $soilHealth = SoilHealth::create($data);
+        app(CaseAssignmentService::class)->autoAssignSoilHealth($soilHealth);
 
         if ($request->hasFile('evidence')) {
             $file = $request->file('evidence');

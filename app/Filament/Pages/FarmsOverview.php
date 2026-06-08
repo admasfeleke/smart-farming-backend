@@ -56,16 +56,22 @@ class FarmsOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('farm_name')
                     ->label('Farm')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(40),
 
                 Tables\Columns\TextColumn::make('farmer.name')
                     ->label('Farmer')
                     ->searchable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->wrap()
+                    ->limit(32),
 
                 Tables\Columns\TextColumn::make('region.name')
                     ->label('Location')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('plots_count')
                     ->label('Plots')
@@ -73,7 +79,8 @@ class FarmsOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('plots_sum_area_hectares')
                     ->label('Total Area (ha)')
                     ->numeric(2)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
 
                 Tables\Columns\TextColumn::make('latitude')
@@ -88,7 +95,8 @@ class FarmsOverview extends Page implements HasTable
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle'),
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
     ->label('Created')

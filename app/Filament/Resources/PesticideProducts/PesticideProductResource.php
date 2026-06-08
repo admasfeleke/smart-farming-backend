@@ -74,11 +74,14 @@ class PesticideProductResource extends Resource
             ->columns([
                 TextColumn::make('product_name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(44),
 
                 TextColumn::make('active_ingredient')
                     ->searchable()
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(48),
 
                 TextColumn::make('product_type')
                     ->badge()

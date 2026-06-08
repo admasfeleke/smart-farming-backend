@@ -6,6 +6,7 @@ use App\Models\CaseAssignment;
 use App\Models\DiseaseReport;
 use App\Models\User;
 use App\Services\CaseAuditLogger;
+use App\Services\CaseAssignmentService;
 use App\Support\RegionScope;
 use App\Support\AuthorityMatrix;
 use Filament\Actions\Action;
@@ -126,8 +127,8 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ->label('')
                     ->getStateUsing(fn (DiseaseReport $record): ?string => $record->backofficeOriginalImageSrc())
                     ->square()
-                    ->width(64)
-                    ->height(64),
+                    ->width(52)
+                    ->height(52),
 
                 Tables\Columns\TextColumn::make('finding')
                     ->label('Finding')
@@ -145,7 +146,8 @@ class DiseaseReportsOverview extends Page implements HasTable
                                 ->orWhere('scan_metadata->verified_disease_name', 'like', "%{$search}%");
                         });
                     })
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(64),
 
                 Tables\Columns\TextColumn::make('severity')
                     ->label('Risk')
@@ -160,7 +162,8 @@ class DiseaseReportsOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('confidence_score')
                     ->label('Confidence')
                     ->state(fn (DiseaseReport $record): ?float => $record->backofficeFindingConfidence())
-                    ->formatStateUsing(fn ($state) => $state !== null ? round($state * 100, 1).'%' : '-'),
+                    ->formatStateUsing(fn ($state) => $state !== null ? round($state * 100, 1).'%' : '-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('review_status')
                     ->label('Review')
@@ -181,7 +184,9 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ->label('Location')
                     ->description(fn (DiseaseReport $record): string => $record->plot?->plot_name
                         ? 'Plot: '.$record->plot->plot_name
-                        : ''),
+                        : '')
+                    ->wrap()
+                    ->limit(42),
 
                 Tables\Columns\TextColumn::make('ai_evidence')
                     ->label('Evidence')
@@ -191,14 +196,16 @@ class DiseaseReportsOverview extends Page implements HasTable
                         'info' => fn (string $state): bool => str_contains($state, 'AI'),
                         'success' => fn (string $state): bool => str_contains($state, 'Image'),
                         'gray' => 'No evidence',
-                    ]),
+                    ])
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('reported_at')
                     ->label('Reported')
                     ->since()
                     ->description(fn (DiseaseReport $record): string => optional($record->reported_at)->format('M d, Y H:i') ?? '-')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->recordAction('viewDetails')
             ->actions([
@@ -305,35 +312,37 @@ class DiseaseReportsOverview extends Page implements HasTable
                         Notification::make()->success()->title('Report rejected')->send();
                     }),
                 Action::make('assign')
-                    ->label('Assign')
+                    ->label(function (): string {
+                        $user = auth()->user();
+
+                        return $user instanceof User && RegionScope::roleName($user) === 'supporter'
+                            ? 'Escalate to Expert'
+                            : 'Assign';
+                    })
                     ->icon('heroicon-o-user-plus')
                     ->color('info')
                     ->authorize(fn (DiseaseReport $record): bool => $this->canAssignReport($record))
                     ->visible(fn (DiseaseReport $record): bool => $this->canAssignReport($record))
-                    ->form([
+                    ->form(fn (DiseaseReport $record): array => [
                         Select::make('assigned_to_user_id')
                             ->label('Assign To')
                             ->searchable()
                             ->required()
-                            ->options(function () {
+                            ->options(function () use ($record) {
                                 $user = auth()->user();
                                 if (! $user instanceof User) {
                                     return [];
                                 }
 
-                                $q = User::query()
-                                    ->whereHas('role', fn ($r) => $r->whereIn('name', ['supporter', 'expert']))
-                                    ->where('is_active', 1);
+                                $roles = RegionScope::roleName($user) === 'supporter'
+                                    ? ['expert']
+                                    : ['supporter', 'expert'];
 
-                                if (! RegionScope::isSuperAdmin($user)) {
-                                    $regionIds = RegionScope::accessibleRegionIds($user);
-                                    if ($regionIds === []) {
-                                        return [];
-                                    }
-                                    $q->whereIn('region_id', $regionIds);
-                                }
-
-                                return $q->orderBy('name')->pluck('name', 'id')->all();
+                                return app(CaseAssignmentService::class)->assignableReviewerOptions(
+                                    $user,
+                                    $record->plot?->farm?->region_id,
+                                    $roles,
+                                );
                             }),
                         Select::make('priority')
                             ->required()
@@ -349,32 +358,56 @@ class DiseaseReportsOverview extends Page implements HasTable
                             ->maxLength(1000),
                     ])
                     ->action(function (DiseaseReport $record, array $data): void {
-                        CaseAssignment::query()->create([
-                            'disease_report_id' => $record->id,
-                            'assigned_to_user_id' => (int) $data['assigned_to_user_id'],
-                            'assigned_by_user_id' => (int) auth()->id(),
-                            'priority' => $data['priority'],
-                            'status' => 'active',
-                        ]);
-
-                        $record->escalated_to_user_id = (int) $data['assigned_to_user_id'];
-                        $record->escalated_at = now();
-                        $record->save();
-
-                        CaseAuditLogger::log(
-                            'disease_report',
-                            $record->id,
-                            'assign',
-                            $record->status,
-                            $record->status,
+                        $assignee = User::query()->findOrFail((int) $data['assigned_to_user_id']);
+                        app(CaseAssignmentService::class)->assignDiseaseReport(
+                            $record,
+                            $assignee,
+                            auth()->user(),
+                            (string) $data['priority'],
                             $data['decision_comment'] ?? null,
-                            [
-                                'assigned_to_user_id' => (int) $data['assigned_to_user_id'],
-                                'priority' => $data['priority'],
-                            ]
                         );
 
                         Notification::make()->success()->title('Case assigned')->send();
+                    }),
+                Action::make('logCall')
+                    ->label('Call Farmer')
+                    ->icon('heroicon-o-phone')
+                    ->color('gray')
+                    ->authorize(fn (DiseaseReport $record): bool => auth()->user()?->can('view', $record) === true)
+                    ->visible(fn (DiseaseReport $record): bool => filled($record->reporter?->phone))
+                    ->modalHeading(fn (DiseaseReport $record): string => 'Call '.$record->reporter?->name)
+                    ->modalDescription(fn (DiseaseReport $record): string => 'Phone: '.($record->reporter?->phone ?? '-'))
+                    ->form([
+                        Select::make('call_outcome')
+                            ->label('Call outcome')
+                            ->required()
+                            ->options([
+                                'called_reached' => 'Called and reached farmer',
+                                'called_not_reached' => 'Called but not reached',
+                                'requested_more_evidence' => 'Requested more evidence',
+                                'field_visit_needed' => 'Field visit needed',
+                            ]),
+                        Textarea::make('call_note')
+                            ->label('Call note')
+                            ->required()
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (DiseaseReport $record, array $data): void {
+                        CaseAuditLogger::log(
+                            'disease_report',
+                            $record->id,
+                            'farmer_call',
+                            $record->status,
+                            $record->status,
+                            (string) $data['call_note'],
+                            [
+                                'call_outcome' => $data['call_outcome'],
+                                'farmer_user_id' => $record->reported_by,
+                                'farmer_phone' => $record->reporter?->phone,
+                            ],
+                        );
+
+                        Notification::make()->success()->title('Call note recorded')->send();
                     }),
             ])
 
@@ -477,15 +510,23 @@ class DiseaseReportsOverview extends Page implements HasTable
             return false;
         }
 
-        if (! in_array(RegionScope::roleName($user), ['super_admin', 'admin'], true)) {
+        $role = RegionScope::roleName($user);
+        if (! in_array($role, ['super_admin', 'admin', 'supporter'], true)) {
             return false;
         }
 
-        if ($user->can('verify', $record) !== true) {
+        if (! RegionScope::canAccessRegion($user, $record->plot?->farm?->region_id)) {
             return false;
         }
 
-        return ! $record->assignments
-            ->contains(fn (CaseAssignment $assignment): bool => $assignment->status === 'active');
+        if ($role === 'supporter') {
+            return $record->assignments->contains(
+                fn (CaseAssignment $assignment): bool =>
+                    $assignment->status === 'active'
+                    && (int) $assignment->assigned_to_user_id === (int) $user->id
+            );
+        }
+
+        return true;
     }
 }

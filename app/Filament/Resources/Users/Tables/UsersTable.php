@@ -17,7 +17,9 @@ class UsersTable
                 \Filament\Tables\Columns\TextColumn::make('name')
                     ->label('Full Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(36),
 
                 \Filament\Tables\Columns\TextColumn::make('role.name')
                     ->label('Role')
@@ -27,6 +29,8 @@ class UsersTable
                 \Filament\Tables\Columns\TextColumn::make('region.name')
                     ->label('Region')
                     ->sortable()
+                    ->wrap()
+                    ->limit(36)
                     ->toggleable(),
 
                 \Filament\Tables\Columns\TextColumn::make('admin_level')
@@ -41,7 +45,8 @@ class UsersTable
                 \Filament\Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 \Filament\Tables\Filters\SelectFilter::make('role')

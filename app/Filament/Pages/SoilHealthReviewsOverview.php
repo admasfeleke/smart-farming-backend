@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\SoilHealth;
 use App\Models\User;
 use App\Services\CaseAuditLogger;
+use App\Services\CaseAssignmentService;
 use App\Support\AuthorityMatrix;
 use App\Support\RegionScope;
 use Filament\Actions\Action;
@@ -62,7 +63,7 @@ class SoilHealthReviewsOverview extends Page implements HasTable
             : SoilHealth::query()->whereRaw('1 = 0');
 
         return $table
-            ->query($query->with(['plot.farm.region', 'testedBy', 'reviewedBy']))
+            ->query($query->with(['plot.farm.region', 'testedBy', 'reviewedBy', 'assignments']))
             ->columns([
                 Tables\Columns\TextColumn::make('review_status')
                     ->label('Review')
@@ -77,26 +78,31 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('test_date')
                     ->label('Test Date')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('plot.farm.farm_name')
                     ->label('Farm')
                     ->searchable()
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('plot.plot_name')
                     ->label('Plot')
                     ->searchable()
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(32),
 
                 Tables\Columns\TextColumn::make('plot.farm.region.name')
                     ->label('Region')
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->limit(36),
 
                 Tables\Columns\TextColumn::make('testedBy.name')
                     ->label('Submitted By')
                     ->searchable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('test_method')
                     ->label('Method')
@@ -116,12 +122,14 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                             $record->phosphorus ?? '-',
                             $record->potassium ?? '-'
                         );
-                    }),
+                    })
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('moisture_level')
                     ->label('Moisture')
                     ->formatStateUsing(fn ($state): string => $state !== null ? $state.'%' : '-')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('evidence_url')
                     ->label('Evidence')
@@ -134,13 +142,13 @@ class SoilHealthReviewsOverview extends Page implements HasTable
 
                 Tables\Columns\TextColumn::make('reviewedBy.name')
                     ->label('Reviewer')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('reviewed_at')
                     ->label('Reviewed At')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('review_status')
@@ -179,6 +187,106 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                         'record' => $record,
                         'items' => $this->evidenceItems($record),
                     ])),
+
+                Action::make('assign')
+                    ->label(function (): string {
+                        $user = auth()->user();
+
+                        return $user instanceof User && RegionScope::roleName($user) === 'supporter'
+                            ? 'Escalate to Expert'
+                            : 'Assign';
+                    })
+                    ->icon('heroicon-o-user-plus')
+                    ->color('info')
+                    ->authorize(fn (SoilHealth $record): bool => $this->canAssignSoilRecord($record))
+                    ->visible(fn (SoilHealth $record): bool => $this->canAssignSoilRecord($record))
+                    ->form(fn (SoilHealth $record): array => [
+                        Select::make('assigned_to_user_id')
+                            ->label('Assign To')
+                            ->searchable()
+                            ->required()
+                            ->options(function () use ($record) {
+                                $user = auth()->user();
+                                if (! $user instanceof User) {
+                                    return [];
+                                }
+
+                                $roles = RegionScope::roleName($user) === 'supporter'
+                                    ? ['expert']
+                                    : ['supporter', 'expert'];
+
+                                return app(CaseAssignmentService::class)->assignableReviewerOptions(
+                                    $user,
+                                    $record->plot?->farm?->region_id,
+                                    $roles,
+                                );
+                            }),
+                        Select::make('priority')
+                            ->required()
+                            ->default('normal')
+                            ->options([
+                                'low' => 'Low',
+                                'normal' => 'Normal',
+                                'high' => 'High',
+                                'critical' => 'Critical',
+                            ]),
+                        Textarea::make('assignment_note')
+                            ->label('Assignment Note')
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (SoilHealth $record, array $data): void {
+                        $assignee = User::query()->findOrFail((int) $data['assigned_to_user_id']);
+                        app(CaseAssignmentService::class)->assignSoilHealth(
+                            $record,
+                            $assignee,
+                            auth()->user(),
+                            (string) $data['priority'],
+                            $data['assignment_note'] ?? null,
+                        );
+
+                        Notification::make()->success()->title('Soil case assigned')->send();
+                    }),
+
+                Action::make('logCall')
+                    ->label('Call Farmer')
+                    ->icon('heroicon-o-phone')
+                    ->color('gray')
+                    ->authorize(fn (SoilHealth $record): bool => auth()->user()?->can('view', $record) === true)
+                    ->visible(fn (SoilHealth $record): bool => filled($record->testedBy?->phone))
+                    ->modalHeading(fn (SoilHealth $record): string => 'Call '.$record->testedBy?->name)
+                    ->modalDescription(fn (SoilHealth $record): string => 'Phone: '.($record->testedBy?->phone ?? '-'))
+                    ->form([
+                        Select::make('call_outcome')
+                            ->label('Call outcome')
+                            ->required()
+                            ->options([
+                                'called_reached' => 'Called and reached farmer',
+                                'called_not_reached' => 'Called but not reached',
+                                'requested_retest' => 'Requested soil retest',
+                                'field_visit_needed' => 'Field visit needed',
+                            ]),
+                        Textarea::make('call_note')
+                            ->label('Call note')
+                            ->required()
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (SoilHealth $record, array $data): void {
+                        CaseAuditLogger::log(
+                            'soil_health',
+                            $record->id,
+                            'farmer_call',
+                            (string) $record->review_status,
+                            (string) $record->review_status,
+                            (string) $data['call_note'],
+                            [
+                                'call_outcome' => $data['call_outcome'],
+                                'farmer_user_id' => $record->tested_by,
+                                'farmer_phone' => $record->testedBy?->phone,
+                            ],
+                        );
+
+                        Notification::make()->success()->title('Call note recorded')->send();
+                    }),
 
                 Action::make('validate')
                     ->label('Validate')
@@ -292,9 +400,19 @@ class SoilHealthReviewsOverview extends Page implements HasTable
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereHas('plot.farm', function (Builder $query) use ($regionIds): void {
+        $query->whereHas('plot.farm', function (Builder $query) use ($regionIds): void {
             $query->whereIn('region_id', $regionIds);
         });
+
+        if (in_array(RegionScope::roleName($user), ['supporter', 'expert'], true)) {
+            $query->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('case_type', 'soil_health')
+                    ->where('assigned_to_user_id', $user->id)
+                    ->where('status', 'active');
+            });
+        }
+
+        return $query;
     }
 
     protected function setReviewDecision(SoilHealth $record, string $status, array $data): void
@@ -342,5 +460,32 @@ class SoilHealthReviewsOverview extends Page implements HasTable
             'type' => $record->evidence_type,
             'is_image' => $isImage,
         ]];
+    }
+
+    protected function canAssignSoilRecord(SoilHealth $record): bool
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $role = RegionScope::roleName($user);
+        if (! in_array($role, ['super_admin', 'admin', 'supporter'], true)) {
+            return false;
+        }
+
+        if (! RegionScope::canAccessRegion($user, $record->plot?->farm?->region_id)) {
+            return false;
+        }
+
+        if ($role === 'supporter') {
+            return $record->assignments->contains(
+                fn ($assignment): bool =>
+                    $assignment->status === 'active'
+                    && (int) $assignment->assigned_to_user_id === (int) $user->id
+            );
+        }
+
+        return true;
     }
 }

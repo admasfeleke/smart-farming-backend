@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\CaseAssignment;
 use App\Models\User;
+use App\Services\CaseAuditLogger;
 use App\Support\RegionScope;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -39,6 +40,9 @@ class MyAssignedCases extends Page implements HasTable
             ->with([
                 'diseaseReport.plot.farm.region',
                 'diseaseReport.crop',
+                'diseaseReport.reporter',
+                'soilHealth.plot.farm.region',
+                'soilHealth.testedBy',
                 'assignedBy',
             ])
             ->where('status', 'active');
@@ -54,7 +58,10 @@ class MyAssignedCases extends Page implements HasTable
             if ($regions === []) {
                 $query->whereRaw('1 = 0');
             } else {
-                $query->whereHas('diseaseReport.plot.farm', fn ($q) => $q->whereIn('region_id', $regions));
+                $query->where(function ($query) use ($regions): void {
+                    $query->whereHas('diseaseReport.plot.farm', fn ($q) => $q->whereIn('region_id', $regions))
+                        ->orWhereHas('soilHealth.plot.farm', fn ($q) => $q->whereIn('region_id', $regions));
+                });
             }
         }
 
@@ -63,19 +70,49 @@ class MyAssignedCases extends Page implements HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('Case #')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('diseaseReportFinding')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('case_type')
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => $state === 'soil_health' ? 'Soil' : 'Disease')
+                    ->colors([
+                        'success' => 'soil_health',
+                        'info' => 'disease_report',
+                    ]),
+                Tables\Columns\TextColumn::make('caseFinding')
                     ->label('Finding')
-                    ->state(fn (CaseAssignment $record): string => $record->diseaseReport?->backofficeFindingName() ?? 'Awaiting analysis')
-                    ->description(fn (CaseAssignment $record): string => ucfirst($record->diseaseReport?->backofficeFindingStage() ?? 'pending'))
+                    ->state(fn (CaseAssignment $record): string => $this->caseFinding($record))
+                    ->description(fn (CaseAssignment $record): string => $this->caseDescription($record))
                     ->wrap()
+                    ->limit(64)
                     ->searchable(),
-                Tables\Columns\TextColumn::make('diseaseReport.crop.name')
+                Tables\Columns\TextColumn::make('cropOrMethod')
+                    ->label('Crop / Method')
+                    ->state(fn (CaseAssignment $record): string => $record->case_type === 'soil_health'
+                        ? (string) ($record->soilHealth?->test_method ?? '-')
+                        : (string) ($record->diseaseReport?->crop?->name ?? '-')),
+                Tables\Columns\TextColumn::make('farmName')
+                    ->label('Farm')
+                    ->state(fn (CaseAssignment $record): string => $record->case_type === 'soil_health'
+                        ? (string) ($record->soilHealth?->plot?->farm?->farm_name ?? '-')
+                        : (string) ($record->diseaseReport?->plot?->farm?->farm_name ?? '-'))
+                    ->wrap()
+                    ->limit(36),
+                Tables\Columns\TextColumn::make('regionName')
+                    ->label('Region')
+                    ->state(fn (CaseAssignment $record): string => $record->case_type === 'soil_health'
+                        ? (string) ($record->soilHealth?->plot?->farm?->region?->name ?? '-')
+                        : (string) ($record->diseaseReport?->plot?->farm?->region?->name ?? '-'))
+                    ->wrap()
+                    ->limit(36)
+                    ->toggleable(),
+                /*Tables\Columns\TextColumn::make('diseaseReport.crop.name')
                     ->label('Crop'),
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.farm_name')
                     ->label('Farm'),
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.region.name')
-                    ->label('Region'),
+                    ->label('Region'),*/
                 Tables\Columns\TextColumn::make('priority')
                     ->badge()
                     ->colors([
@@ -87,15 +124,63 @@ class MyAssignedCases extends Page implements HasTable
                 Tables\Columns\TextColumn::make('due_at')
                     ->label('Due At')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('assignedBy.name')
-                    ->label('Assigned By'),
+                    ->label('Assigned By')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Assigned On')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
+                Action::make('logCall')
+                    ->label('Call Farmer')
+                    ->icon('heroicon-o-phone')
+                    ->color('gray')
+                    ->visible(fn (CaseAssignment $record): bool => filled($this->farmerPhone($record)))
+                    ->modalHeading(fn (CaseAssignment $record): string => 'Call '.$this->farmerName($record))
+                    ->modalDescription(fn (CaseAssignment $record): string => 'Phone: '.$this->farmerPhone($record))
+                    ->form([
+                        \Filament\Forms\Components\Select::make('call_outcome')
+                            ->label('Call outcome')
+                            ->required()
+                            ->options([
+                                'called_reached' => 'Called and reached farmer',
+                                'called_not_reached' => 'Called but not reached',
+                                'requested_more_evidence' => 'Requested more evidence',
+                                'field_visit_needed' => 'Field visit needed',
+                            ]),
+                        \Filament\Forms\Components\Textarea::make('call_note')
+                            ->label('Call note')
+                            ->required()
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (CaseAssignment $record, array $data): void {
+                        $entityType = $record->case_type === 'soil_health' ? 'soil_health' : 'disease_report';
+                        $entityId = $record->case_type === 'soil_health'
+                            ? (int) $record->soil_health_id
+                            : (int) $record->disease_report_id;
+                        $status = $record->case_type === 'soil_health'
+                            ? (string) $record->soilHealth?->review_status
+                            : (string) $record->diseaseReport?->status;
+
+                        CaseAuditLogger::log(
+                            $entityType,
+                            $entityId,
+                            'farmer_call',
+                            $status,
+                            $status,
+                            (string) $data['call_note'],
+                            [
+                                'call_outcome' => $data['call_outcome'],
+                                'farmer_phone' => $this->farmerPhone($record),
+                                'assignment_id' => $record->id,
+                            ],
+                        );
+                    }),
                 Action::make('mark_completed')
                     ->label('Complete')
                     ->icon('heroicon-o-check-circle')
@@ -109,5 +194,42 @@ class MyAssignedCases extends Page implements HasTable
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50]);
+    }
+
+    protected function caseFinding(CaseAssignment $record): string
+    {
+        if ($record->case_type === 'soil_health') {
+            return 'Soil review: '.ucfirst((string) ($record->soilHealth?->review_status ?? 'pending'));
+        }
+
+        return $record->diseaseReport?->backofficeFindingName() ?? 'Awaiting analysis';
+    }
+
+    protected function caseDescription(CaseAssignment $record): string
+    {
+        if ($record->case_type === 'soil_health') {
+            return trim(implode(' | ', array_filter([
+                $record->soilHealth?->plot?->plot_name,
+                $record->soilHealth?->test_date?->format('M d, Y'),
+            ])));
+        }
+
+        return ucfirst($record->diseaseReport?->backofficeFindingStage() ?? 'pending');
+    }
+
+    protected function farmerName(CaseAssignment $record): string
+    {
+        return $record->case_type === 'soil_health'
+            ? (string) ($record->soilHealth?->testedBy?->name ?? 'Farmer')
+            : (string) ($record->diseaseReport?->reporter?->name ?? 'Farmer');
+    }
+
+    protected function farmerPhone(CaseAssignment $record): ?string
+    {
+        $phone = $record->case_type === 'soil_health'
+            ? $record->soilHealth?->testedBy?->phone
+            : $record->diseaseReport?->reporter?->phone;
+
+        return filled($phone) ? (string) $phone : null;
     }
 }

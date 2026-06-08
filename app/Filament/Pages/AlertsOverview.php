@@ -66,7 +66,8 @@ class AlertsOverview extends Page implements HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(54),
 
                 Tables\Columns\TextColumn::make('alert_type')
                     ->label('Type')
@@ -89,19 +90,29 @@ class AlertsOverview extends Page implements HasTable
                     ->description(fn (Alert $record): string => $record->diseaseReport instanceof DiseaseReport
                         ? ucfirst($record->diseaseReport->backofficeFindingStage())
                         : 'Pending')
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(54),
 
                 Tables\Columns\TextColumn::make('diseaseReport.crop.name')
-                    ->label('Crop'),
+                    ->label('Crop')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('diseaseReport.plot.plot_name')
-                    ->label('Plot'),
+                    ->label('Plot')
+                    ->wrap()
+                    ->limit(28)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.farm_name')
-                    ->label('Farm'),
+                    ->label('Farm')
+                    ->wrap()
+                    ->limit(32),
 
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.region.name')
-                    ->label('Region'),
+                    ->label('Region')
+                    ->wrap()
+                    ->limit(32)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -115,7 +126,8 @@ class AlertsOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('triggered_at')
                     ->label('Triggered')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->actions([
                 Action::make('acknowledge')

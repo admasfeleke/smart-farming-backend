@@ -20,7 +20,8 @@ class TreatmentRecommendationsTable
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable()
-                    ->wrap(),
+                    ->wrap()
+                    ->limit(56),
 
                 TextColumn::make('crop.name')
                     ->label('Crop')
@@ -31,12 +32,14 @@ class TreatmentRecommendationsTable
                     ->label('Disease')
                     ->searchable()
                     ->placeholder('Keyword/default')
-                    ->toggleable(),
+                    ->wrap()
+                    ->limit(40)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('disease_keyword')
                     ->label('Keyword')
                     ->badge()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('recommendation_type')
                     ->label('Type')
@@ -45,7 +48,8 @@ class TreatmentRecommendationsTable
                 TextColumn::make('pesticideProduct.active_ingredient')
                     ->label('Active ingredient')
                     ->wrap()
-                    ->toggleable(),
+                    ->limit(42)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('approval_status')
                     ->label('Approval')
