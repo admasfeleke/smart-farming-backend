@@ -98,6 +98,8 @@ class SoilHealthController extends Controller
     {
         $this->authorize('create', SoilHealth::class);
 
+        $this->normalizeJsonPayloadFields($request, ['sensor_payload', 'field_context']);
+
         $user = $request->user();
         $role = RegionScope::roleName($user);
         $isReviewer = in_array($role, ['super_admin', 'admin', 'supporter', 'expert', 'field_officer'], true);
@@ -114,6 +116,12 @@ class SoilHealthController extends Controller
             'test_date' => ['nullable', 'date'],
             'recommendations' => ['nullable', 'string'],
             'test_method' => ['required', 'string', 'max:50'],
+            'data_source' => ['nullable', 'string', 'max:50'],
+            'sensor_device_id' => ['nullable', 'string', 'max:120'],
+            'sensor_reading_id' => ['nullable', 'string', 'max:160'],
+            'sensor_payload' => ['nullable', 'array'],
+            'field_context' => ['nullable', 'array'],
+            'confidence_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tested_by' => ['nullable', 'integer', 'exists:users,id'],
             'evidence' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ]);
@@ -124,6 +132,7 @@ class SoilHealthController extends Controller
         if (empty($data['test_date'])) {
             $data['test_date'] = now()->toDateString();
         }
+        $data['data_source'] = $data['data_source'] ?? $data['test_method'] ?? 'manual';
 
         // Set tested_by to current user if not provided
         if (empty($data['tested_by'])) {
@@ -158,6 +167,8 @@ class SoilHealthController extends Controller
     {
         $this->authorize('update', $soilHealth);
 
+        $this->normalizeJsonPayloadFields($request, ['sensor_payload', 'field_context']);
+
         $user = $request->user();
         $role = RegionScope::roleName($user);
         $isReviewer = in_array($role, ['super_admin', 'admin', 'supporter', 'expert', 'field_officer'], true);
@@ -173,6 +184,12 @@ class SoilHealthController extends Controller
             'test_date' => ['date'],
             'recommendations' => ['nullable', 'string'],
             'test_method' => ['string', 'max:50'],
+            'data_source' => ['nullable', 'string', 'max:50'],
+            'sensor_device_id' => ['nullable', 'string', 'max:120'],
+            'sensor_reading_id' => ['nullable', 'string', 'max:160'],
+            'sensor_payload' => ['nullable', 'array'],
+            'field_context' => ['nullable', 'array'],
+            'confidence_score' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'review_status' => ['sometimes', 'string', Rule::in(['pending', 'validated', 'rejected'])],
             'review_reason_code' => ['nullable', 'string', 'max:80'],
             'review_comment' => ['nullable', 'string', 'max:2000'],
@@ -621,5 +638,20 @@ class SoilHealthController extends Controller
     protected function deleteEvidenceDirectory(SoilHealth $soilHealth): void
     {
         Storage::disk('public')->deleteDirectory($this->evidenceDirectory($soilHealth));
+    }
+
+    protected function normalizeJsonPayloadFields(Request $request, array $fields): void
+    {
+        foreach ($fields as $field) {
+            $value = $request->input($field);
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge([$field => $decoded]);
+            }
+        }
     }
 }

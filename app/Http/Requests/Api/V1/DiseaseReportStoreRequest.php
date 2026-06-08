@@ -7,6 +7,21 @@ use Illuminate\Validation\Rule;
 
 class DiseaseReportStoreRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        foreach (['scan_metadata', 'field_context'] as $field) {
+            $value = $this->input($field);
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $this->merge([$field => $decoded]);
+            }
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -23,6 +38,7 @@ class DiseaseReportStoreRequest extends FormRequest
             'report_source' => ['nullable', 'string', Rule::in(['manual', 'ai'])],
             'description' => ['nullable', 'string'],
             'scan_metadata' => ['nullable', 'array'],
+            'field_context' => ['nullable', 'array'],
             'scan_metadata.growth_stage' => ['nullable', 'string', 'max:50'],
             'scan_metadata.symptom_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'scan_metadata.recent_rain' => ['nullable', 'boolean'],

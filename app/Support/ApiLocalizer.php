@@ -128,6 +128,60 @@ class ApiLocalizer
     public static function localizeTreatmentGuidance(Request $request, array $guidance): array
     {
         $lang = self::language($request);
+        $registry = is_array($guidance['registry_localized_content'] ?? null)
+            ? $guidance['registry_localized_content']
+            : [];
+        $activeIngredients = is_array($guidance['registry_product_localized_active_ingredients'] ?? null)
+            ? $guidance['registry_product_localized_active_ingredients']
+            : [];
+
+        foreach ([
+            'headline' => 'title',
+            'next_step' => 'summary',
+            'dosage' => 'dosage_text',
+            'ppe' => 'ppe',
+            'pre_harvest_interval' => 'pre_harvest_interval',
+            're_entry_interval' => 're_entry_interval',
+        ] as $responseKey => $registryKey) {
+            $localized = self::localizedRegistryValue($registry, $lang, $registryKey);
+            if ($localized !== null) {
+                $guidance[$responseKey] = $localized;
+            }
+        }
+
+        $localizedActiveIngredient = self::localizedRegistryScalar($activeIngredients, $lang);
+        if ($localizedActiveIngredient !== null) {
+            $guidance['active_ingredient'] = $localizedActiveIngredient;
+        }
+
+        foreach ([
+            'actions' => ['natural_treatment', 'modern_treatment', 'application_timing'],
+            'monitoring' => ['monitoring_steps'],
+            'prevention' => ['prevention_steps'],
+        ] as $responseKey => $registryKeys) {
+            $localizedItems = [];
+            foreach ($registryKeys as $registryKey) {
+                $value = self::localizedRegistryValue($registry, $lang, $registryKey);
+                if (is_array($value)) {
+                    $localizedItems = [...$localizedItems, ...array_map('strval', $value)];
+                } elseif (is_string($value) && trim($value) !== '') {
+                    $localizedItems[] = $value;
+                }
+            }
+            if ($localizedItems !== []) {
+                $guidance[$responseKey] = array_values(array_unique($localizedItems));
+            }
+        }
+
+        if (isset($guidance['treatment_options']) && is_array($guidance['treatment_options'])) {
+            $guidance['treatment_options'] = array_map(
+                fn ($option) => is_array($option)
+                    ? self::localizeTreatmentOption($option, $lang)
+                    : $option,
+                $guidance['treatment_options']
+            );
+        }
+
         foreach (['headline', 'next_step', 'verification_note', 'active_ingredient', 'dosage', 'ppe', 'pre_harvest_interval', 're_entry_interval'] as $key) {
             if (isset($guidance[$key]) && is_string($guidance[$key])) {
                 $guidance[$key] = self::localizeExact($lang, $guidance[$key]);
@@ -140,7 +194,71 @@ class ApiLocalizer
             }
         }
 
+        unset(
+            $guidance['registry_localized_content'],
+            $guidance['registry_product_localized_names'],
+            $guidance['registry_product_localized_active_ingredients']
+        );
+
         return $guidance;
+    }
+
+    private static function localizeTreatmentOption(array $option, string $lang): array
+    {
+        $registry = is_array($option['localized_content'] ?? null) ? $option['localized_content'] : [];
+        foreach ([
+            'title' => 'title',
+            'summary' => 'summary',
+            'natural_treatment' => 'natural_treatment',
+            'modern_treatment' => 'modern_treatment',
+            'dosage' => 'dosage_text',
+            'application_timing' => 'application_timing',
+            'ppe' => 'ppe',
+        ] as $responseKey => $registryKey) {
+            $localized = self::localizedRegistryValue($registry, $lang, $registryKey);
+            if (is_string($localized) && trim($localized) !== '') {
+                $option[$responseKey] = $localized;
+            }
+        }
+
+        $productName = self::localizedRegistryScalar(
+            is_array($option['localized_product_names'] ?? null) ? $option['localized_product_names'] : [],
+            $lang
+        );
+        if ($productName !== null) {
+            $option['product_name'] = $productName;
+        }
+
+        $activeIngredient = self::localizedRegistryScalar(
+            is_array($option['localized_active_ingredients'] ?? null) ? $option['localized_active_ingredients'] : [],
+            $lang
+        );
+        if ($activeIngredient !== null) {
+            $option['active_ingredient'] = $activeIngredient;
+        }
+
+        unset($option['localized_content'], $option['localized_product_names'], $option['localized_active_ingredients']);
+
+        return $option;
+    }
+
+    private static function localizedRegistryValue(array $localized, string $lang, string $key): string|array|null
+    {
+        $candidate = $localized[$lang][$key] ?? $localized['am'][$key] ?? $localized['en'][$key] ?? null;
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return $candidate;
+        }
+        if (is_array($candidate) && $candidate !== []) {
+            return $candidate;
+        }
+
+        return null;
+    }
+
+    private static function localizedRegistryScalar(array $localized, string $lang): ?string
+    {
+        $candidate = $localized[$lang] ?? $localized['am'] ?? $localized['en'] ?? null;
+        return is_string($candidate) && trim($candidate) !== '' ? $candidate : null;
     }
 
     private static function localizeDriver(string $lang, array $item): array

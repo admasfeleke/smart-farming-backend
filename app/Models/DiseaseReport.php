@@ -24,6 +24,7 @@ class DiseaseReport extends Model
         'description',
         'report_source',
         'scan_metadata',
+        'field_context',
         'confidence_score',
         'severity',
         'status',
@@ -41,6 +42,7 @@ class DiseaseReport extends Model
     protected $casts = [
         'reported_at' => 'datetime',
         'scan_metadata' => 'array',
+        'field_context' => 'array',
         'confidence_score' => 'float',
         'image_size_bytes' => 'integer',
         'verified_at' => 'datetime',

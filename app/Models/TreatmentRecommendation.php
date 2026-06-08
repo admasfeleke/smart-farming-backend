@@ -14,6 +14,7 @@ class TreatmentRecommendation extends Model
         'disease_keyword',
         'recommendation_type',
         'title',
+        'localized_content',
         'summary',
         'natural_treatment',
         'modern_treatment',
@@ -33,6 +34,7 @@ class TreatmentRecommendation extends Model
     ];
 
     protected $casts = [
+        'localized_content' => 'array',
         'monitoring_steps' => 'array',
         'prevention_steps' => 'array',
         'approved_at' => 'datetime',

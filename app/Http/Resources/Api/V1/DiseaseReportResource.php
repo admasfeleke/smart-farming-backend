@@ -88,6 +88,7 @@ class DiseaseReportResource extends JsonResource
             'description' => $this->description,
             'report_source' => $this->report_source,
             'scan_metadata' => $this->scan_metadata,
+            'field_context' => $this->field_context,
             'confidence_score' => $this->confidence_score,
             'severity' => $this->severity,
             'status' => $this->status,

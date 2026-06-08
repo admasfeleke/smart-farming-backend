@@ -121,7 +121,7 @@ class DiseaseReportController extends Controller
         try {
             $report = DB::transaction(function () use ($data, $request, $scanMetadata, $submissionId) {
                 $payload = [
-                    ...collect($data)->except(['scan_metadata', 'client_submission_id'])->all(),
+                    ...collect($data)->except(['scan_metadata', 'field_context', 'client_submission_id'])->all(),
                     'reported_by' => $request->user()->id,
                     'reported_at' => $data['reported_at'] ?? now(),
                     'status' => $data['status'] ?? 'new',
@@ -130,6 +130,9 @@ class DiseaseReportController extends Controller
 
                 if (Schema::hasColumn('disease_reports', 'scan_metadata')) {
                     $payload['scan_metadata'] = $scanMetadata;
+                }
+                if (Schema::hasColumn('disease_reports', 'field_context')) {
+                    $payload['field_context'] = $data['field_context'] ?? $this->fieldContextFromScanMetadata($scanMetadata);
                 }
                 if (Schema::hasColumn('disease_reports', 'client_submission_id')) {
                     $payload['client_submission_id'] = $submissionId;
@@ -156,6 +159,8 @@ class DiseaseReportController extends Controller
     {
         $this->authorize('create', DiseaseReport::class);
 
+        $this->normalizeJsonPayloadFields($request, ['scan_metadata', 'field_context']);
+
         $inferenceEnabled = (bool) config('services.inference.enabled', false);
         $strictInferencePrecheck = (bool) config('services.inference.strict_precheck', false);
         if ($inferenceEnabled && $strictInferencePrecheck && ! $inference->isHealthy()) {
@@ -171,6 +176,7 @@ class DiseaseReportController extends Controller
             'client_submission_id' => ['nullable', 'string', 'max:100'],
             'captured_at' => ['nullable', 'date'],
             'scan_metadata' => ['nullable', 'array'],
+            'field_context' => ['nullable', 'array'],
             'scan_metadata.growth_stage' => ['nullable', 'string', 'max:50'],
             'scan_metadata.symptom_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'scan_metadata.recent_rain' => ['nullable', 'boolean'],
@@ -256,6 +262,9 @@ class DiseaseReportController extends Controller
 
                 if (Schema::hasColumn('disease_reports', 'scan_metadata')) {
                     $payload['scan_metadata'] = $scanMetadata;
+                }
+                if (Schema::hasColumn('disease_reports', 'field_context')) {
+                    $payload['field_context'] = $data['field_context'] ?? $this->fieldContextFromScanMetadata($scanMetadata);
                 }
                 if (Schema::hasColumn('disease_reports', 'client_submission_id')) {
                     $payload['client_submission_id'] = $submissionId;
@@ -782,5 +791,35 @@ class DiseaseReportController extends Controller
         }
 
         return $family;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fieldContextFromScanMetadata(array $metadata): ?array
+    {
+        $context = [];
+        foreach (['growth_stage', 'symptom_days', 'recent_rain', 'field_notes'] as $key) {
+            if (array_key_exists($key, $metadata) && $metadata[$key] !== null && $metadata[$key] !== '') {
+                $context[$key] = $metadata[$key];
+            }
+        }
+
+        return $context === [] ? null : $context;
+    }
+
+    private function normalizeJsonPayloadFields(Request $request, array $fields): void
+    {
+        foreach ($fields as $field) {
+            $value = $request->input($field);
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge([$field => $decoded]);
+            }
+        }
     }
 }

@@ -19,6 +19,12 @@ class WeatherData extends Model
         'wind_speed',
         'soil_moisture',
         'data_source',
+        'sensor_device_id',
+        'sensor_reading_id',
+        'sensor_payload',
+        'field_context',
+        'battery_level',
+        'signal_quality',
         'recorded_at',
     ];
 
@@ -45,6 +51,10 @@ class WeatherData extends Model
         'precipitation' => 'decimal:2',
         'wind_speed' => 'decimal:2',
         'soil_moisture' => 'decimal:2',
+        'sensor_payload' => 'array',
+        'field_context' => 'array',
+        'battery_level' => 'decimal:2',
+        'signal_quality' => 'decimal:2',
     ];
 
     public function region()

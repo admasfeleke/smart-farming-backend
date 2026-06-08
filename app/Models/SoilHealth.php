@@ -23,6 +23,12 @@ class SoilHealth extends Model
         'test_date',
         'recommendations',
         'test_method',
+        'data_source',
+        'sensor_device_id',
+        'sensor_reading_id',
+        'sensor_payload',
+        'field_context',
+        'confidence_score',
         'tested_by',
         'review_status',
         'reviewed_by',
@@ -57,6 +63,9 @@ class SoilHealth extends Model
         'potassium' => 'decimal:2',
         'organic_matter' => 'decimal:2',
         'moisture_level' => 'decimal:2',
+        'sensor_payload' => 'array',
+        'field_context' => 'array',
+        'confidence_score' => 'decimal:2',
         'reviewed_at' => 'datetime',
     ];
 

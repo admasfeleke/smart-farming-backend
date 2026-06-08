@@ -94,6 +94,8 @@ class WeatherDataController extends Controller
     {
         $this->authorize('create', WeatherData::class);
 
+        $this->normalizeJsonPayloadFields($request, ['sensor_payload', 'field_context']);
+
         $data = $request->validate([
             'region_id' => ['nullable', 'integer', 'exists:regions,id'],
             'farm_id' => ['nullable', 'integer', 'exists:farms,id'],
@@ -104,6 +106,12 @@ class WeatherDataController extends Controller
             'wind_speed' => ['nullable', 'numeric', 'min:0', 'max:200'],
             'soil_moisture' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'data_source' => ['required', 'string', 'max:50'],
+            'sensor_device_id' => ['nullable', 'string', 'max:120'],
+            'sensor_reading_id' => ['nullable', 'string', 'max:160'],
+            'sensor_payload' => ['nullable', 'array'],
+            'field_context' => ['nullable', 'array'],
+            'battery_level' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'signal_quality' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'recorded_at' => ['nullable', 'date'],
         ]);
 
@@ -127,6 +135,8 @@ class WeatherDataController extends Controller
     {
         $this->authorize('update', $weatherData);
 
+        $this->normalizeJsonPayloadFields($request, ['sensor_payload', 'field_context']);
+
         $data = $request->validate([
             'temperature' => ['nullable', 'numeric', 'min:-50', 'max:60'],
             'humidity' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -134,6 +144,12 @@ class WeatherDataController extends Controller
             'wind_speed' => ['nullable', 'numeric', 'min:0', 'max:200'],
             'soil_moisture' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'data_source' => ['string', 'max:50'],
+            'sensor_device_id' => ['nullable', 'string', 'max:120'],
+            'sensor_reading_id' => ['nullable', 'string', 'max:160'],
+            'sensor_payload' => ['nullable', 'array'],
+            'field_context' => ['nullable', 'array'],
+            'battery_level' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'signal_quality' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'recorded_at' => ['nullable', 'date'],
         ]);
 
@@ -279,5 +295,20 @@ class WeatherDataController extends Controller
     {
         $perPage = (int) $request->query('per_page', 15);
         return max(1, min($perPage, 100));
+    }
+
+    protected function normalizeJsonPayloadFields(Request $request, array $fields): void
+    {
+        foreach ($fields as $field) {
+            $value = $request->input($field);
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request->merge([$field => $decoded]);
+            }
+        }
     }
 }
