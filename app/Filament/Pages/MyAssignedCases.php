@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\CaseAssignment;
 use App\Models\User;
 use App\Services\CaseAuditLogger;
+use App\Services\DiseaseReportReviewService;
 use App\Support\RegionScope;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -12,6 +13,10 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use UnitEnum;
 use BackedEnum;
 
@@ -136,6 +141,104 @@ class MyAssignedCases extends Page implements HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
+                Action::make('confirmDisease')
+                    ->label('Confirm Disease')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (CaseAssignment $record): bool => $this->canReviewDiseaseAssignment($record))
+                    ->authorize(fn (CaseAssignment $record): bool => auth()->user()?->can('update', $record) === true)
+                    ->form(fn (CaseAssignment $record): array => [
+                        TextInput::make('disease_name')
+                            ->label('Confirmed disease')
+                            ->required()
+                            ->maxLength(100)
+                            ->default($this->defaultDiseaseName($record)),
+                        Select::make('severity')
+                            ->required()
+                            ->default((string) ($record->diseaseReport?->severity ?: 'medium'))
+                            ->options([
+                                'low' => 'Low',
+                                'medium' => 'Medium',
+                                'high' => 'High',
+                                'critical' => 'Critical',
+                            ]),
+                        TextInput::make('confidence_score')
+                            ->label('Confidence score')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(1)
+                            ->step(0.01)
+                            ->default($record->diseaseReport?->backofficeFindingConfidence()),
+                        Select::make('decision_reason_code')
+                            ->required()
+                            ->default('expert_confirmed')
+                            ->options([
+                                'visual_match' => 'Visual match',
+                                'expert_confirmed' => 'Expert confirmed',
+                                'field_pattern_match' => 'Field pattern match',
+                            ]),
+                        Textarea::make('decision_comment')
+                            ->required()
+                            ->maxLength(1000),
+                    ])
+                    ->requiresConfirmation()
+                    ->action(function (CaseAssignment $record, array $data): void {
+                        $report = $record->diseaseReport;
+                        $user = auth()->user();
+                        if (! $report || ! $user instanceof User) {
+                            return;
+                        }
+
+                        app(DiseaseReportReviewService::class)->confirm(
+                            $report,
+                            $user,
+                            (string) $data['disease_name'],
+                            (string) $data['severity'],
+                            isset($data['confidence_score']) && $data['confidence_score'] !== ''
+                                ? (float) $data['confidence_score']
+                                : null,
+                            (string) $data['decision_reason_code'],
+                            $data['decision_comment'] ?? null,
+                        );
+
+                        Notification::make()->success()->title('Disease report confirmed')->send();
+                    }),
+                Action::make('rejectDisease')
+                    ->label('Reject Disease')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (CaseAssignment $record): bool => $this->canReviewDiseaseAssignment($record))
+                    ->authorize(fn (CaseAssignment $record): bool => auth()->user()?->can('update', $record) === true)
+                    ->form([
+                        Select::make('decision_reason_code')
+                            ->required()
+                            ->default('insufficient_evidence')
+                            ->options([
+                                'insufficient_evidence' => 'Insufficient evidence',
+                                'image_quality_issue' => 'Image quality issue',
+                                'wrong_crop_context' => 'Wrong crop context',
+                            ]),
+                        Textarea::make('decision_comment')
+                            ->required()
+                            ->maxLength(1000),
+                    ])
+                    ->requiresConfirmation()
+                    ->action(function (CaseAssignment $record, array $data): void {
+                        $report = $record->diseaseReport;
+                        $user = auth()->user();
+                        if (! $report || ! $user instanceof User) {
+                            return;
+                        }
+
+                        app(DiseaseReportReviewService::class)->reject(
+                            $report,
+                            $user,
+                            (string) $data['decision_reason_code'],
+                            $data['decision_comment'] ?? null,
+                        );
+
+                        Notification::make()->success()->title('Disease report rejected')->send();
+                    }),
                 Action::make('logCall')
                     ->label('Call Farmer')
                     ->icon('heroicon-o-phone')
@@ -182,10 +285,11 @@ class MyAssignedCases extends Page implements HasTable
                         );
                     }),
                 Action::make('mark_completed')
-                    ->label('Complete')
+                    ->label('Close Assignment')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->authorize(fn (CaseAssignment $record): bool => auth()->user()?->can('update', $record) === true)
+                    ->visible(fn (CaseAssignment $record): bool => ! $this->isOpenDiseaseAssignment($record))
                     ->requiresConfirmation()
                     ->action(function (CaseAssignment $record): void {
                         $record->status = 'completed';
@@ -231,5 +335,26 @@ class MyAssignedCases extends Page implements HasTable
             : $record->diseaseReport?->reporter?->phone;
 
         return filled($phone) ? (string) $phone : null;
+    }
+
+    protected function canReviewDiseaseAssignment(CaseAssignment $record): bool
+    {
+        return $record->case_type === 'disease_report'
+            && $record->diseaseReport !== null
+            && in_array(strtolower((string) $record->diseaseReport->status), ['new', 'reviewing', 'processing'], true);
+    }
+
+    protected function isOpenDiseaseAssignment(CaseAssignment $record): bool
+    {
+        return $record->case_type === 'disease_report'
+            && $record->diseaseReport !== null
+            && ! in_array(strtolower((string) $record->diseaseReport->status), ['confirmed', 'verified', 'rejected'], true);
+    }
+
+    protected function defaultDiseaseName(CaseAssignment $record): string
+    {
+        $name = trim((string) $record->diseaseReport?->backofficeFindingName());
+
+        return strtolower($name) === 'awaiting analysis' ? '' : $name;
     }
 }

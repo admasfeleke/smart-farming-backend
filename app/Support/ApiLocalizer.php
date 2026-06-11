@@ -182,6 +182,10 @@ class ApiLocalizer
             );
         }
 
+        if ($lang !== 'en' && ($guidance['mode'] ?? null) === 'treat') {
+            $guidance = self::applyGenericTreatmentFallback($guidance, $lang);
+        }
+
         foreach (['headline', 'next_step', 'verification_note', 'active_ingredient', 'dosage', 'ppe', 'pre_harvest_interval', 're_entry_interval'] as $key) {
             if (isset($guidance[$key]) && is_string($guidance[$key])) {
                 $guidance[$key] = self::localizeExact($lang, $guidance[$key]);
@@ -237,9 +241,156 @@ class ApiLocalizer
             $option['active_ingredient'] = $activeIngredient;
         }
 
+        foreach ([
+            'title',
+            'summary',
+            'natural_treatment',
+            'modern_treatment',
+            'product_name',
+            'active_ingredient',
+            'formulation',
+            'registration_status',
+            'dosage',
+            'application_timing',
+            'ppe',
+            'restrictions',
+        ] as $key) {
+            if (isset($option[$key]) && is_string($option[$key])) {
+                $option[$key] = self::localizeExact($lang, $option[$key]);
+            }
+        }
+
+        foreach (['monitoring_steps', 'prevention_steps'] as $key) {
+            if (isset($option[$key]) && is_array($option[$key])) {
+                $option[$key] = self::localizeExactList($lang, $option[$key]);
+            }
+        }
+
         unset($option['localized_content'], $option['localized_product_names'], $option['localized_active_ingredients']);
 
         return $option;
+    }
+
+    /**
+     * @param array<string, mixed> $guidance
+     * @return array<string, mixed>
+     */
+    private static function applyGenericTreatmentFallback(array $guidance, string $lang): array
+    {
+        $fallback = self::genericTreatmentText($lang);
+        if ($fallback === []) {
+            return $guidance;
+        }
+
+        foreach (['headline', 'next_step', 'dosage', 'ppe', 'verification_note'] as $key) {
+            if (isset($fallback[$key])) {
+                $guidance[$key] = $fallback[$key];
+            }
+        }
+
+        foreach (['actions', 'monitoring', 'prevention', 'escalate_if', 'notes'] as $key) {
+            if (isset($fallback[$key])) {
+                $guidance[$key] = $fallback[$key];
+            }
+        }
+
+        if (isset($guidance['treatment_options']) && is_array($guidance['treatment_options'])) {
+            $guidance['treatment_options'] = array_map(function ($option) use ($fallback) {
+                if (! is_array($option)) {
+                    return $option;
+                }
+
+                foreach ([
+                    'title',
+                    'summary',
+                    'natural_treatment',
+                    'modern_treatment',
+                    'dosage',
+                    'application_timing',
+                    'ppe',
+                    'restrictions',
+                ] as $key) {
+                    if (isset($fallback[$key])) {
+                        $option[$key] = $fallback[$key];
+                    }
+                }
+
+                if (isset($fallback['monitoring'])) {
+                    $option['monitoring_steps'] = $fallback['monitoring'];
+                }
+                if (isset($fallback['prevention'])) {
+                    $option['prevention_steps'] = $fallback['prevention'];
+                }
+
+                return $option;
+            }, $guidance['treatment_options']);
+        }
+
+        return $guidance;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function genericTreatmentText(string $lang): array
+    {
+        return match ($lang) {
+            'am' => [
+                'headline' => 'የተረጋገጠ የበሽታ ሕክምና መመሪያ',
+                'title' => 'የተረጋገጠ የበሽታ ሕክምና መመሪያ',
+                'summary' => 'ይህ መመሪያ በተረጋገጠ ምርመራ፣ በሰብል አውድ እና በመስክ ምልክቶች ላይ የተመሠረተ ነው።',
+                'natural_treatment' => 'በጣም የተጎዱ ቅጠሎችን በጥንቃቄ ያስወግዱ፣ የቅጠል እርጥበትን ይቀንሱ፣ የአየር መዘዋወርን ያሻሽሉ እና የበሽታ ተረፈ ምርትን ከማሳ ያርቁ።',
+                'modern_treatment' => 'በአካባቢ የተመዘገበ እና ለዚህ ሰብል የተፈቀደ ግብዓት ብቻ ይጠቀሙ። መጠን፣ የመከር መጠበቂያ ጊዜ እና የመመለሻ ጊዜን ከመለያው ያረጋግጡ።',
+                'dosage' => 'በአካባቢ በተመዘገበው የምርት መለያ ላይ የተጻፈውን መጠን ብቻ ይከተሉ።',
+                'application_timing' => 'የባለሙያ ማረጋገጫ ከተጠናቀቀ በኋላ፣ ነፋስ ዝቅ ሲል እና ዝናብ በቅርቡ ካልተጠበቀ ይተግብሩ።',
+                'ppe' => 'ጓንት፣ መሸፈኛ/ማስክ፣ የዓይን መከላከያ፣ ረጅም እጅጌ፣ ረጅም ሱሪ እና የተዘጋ ጫማ ይጠቀሙ።',
+                'restrictions' => 'የአካባቢ ምዝገባ፣ የሰብል መለያ፣ መጠን፣ የውሃ መጠን፣ PHI፣ REI እና PPE ሳይረጋገጡ አይርጩ።',
+                'next_step' => 'ምልክቶችን በ48 እስከ 72 ሰዓት ውስጥ እንደገና ይመርምሩ እና መስፋፋት ካለ ድጋፍ ሰጪን ወይም ባለሙያን ያነጋግሩ።',
+                'verification_note' => 'ይህ ምክር ከተረጋገጠ ምርመራ በኋላ የተሰጠ ነው፤ ከመርጨት በፊት የምርት መለያውን ያረጋግጡ።',
+                'actions' => ['የተጎዱ ክፍሎችን በጥንቃቄ ያስወግዱ።', 'ቅጠል እንዳይረጥብ የመስኖ ልምድን ያስተካክሉ።', 'የተመዘገበ ግብዓት ካስፈለገ በመለያው መመሪያ ብቻ ይጠቀሙ።'],
+                'monitoring' => ['ከ48 እስከ 72 ሰዓት በኋላ ተመሳሳይ ተክሎችን ይመርምሩ።', 'ምልክቶች ወደ አዲስ ቅጠሎች እየተስፋፉ መሆኑን ይመዝግቡ።', 'ተመሳሳይ ምልክት በሌሎች ማሳዎች ካለ ያሳውቁ።'],
+                'prevention' => ['በተቻለ መጠን ሰብል ይቀያይሩ።', 'በበሽታ ግፊት ጊዜ ከላይ መስኖን ይቀንሱ።', 'ከመከር በኋላ የበሽታ ተረፈ ምርትን ያስወግዱ።', 'ንጹህ መሳሪያ እና ጤናማ የመትከያ ቁሳቁስ ይጠቀሙ።'],
+                'escalate_if' => ['ምልክቶች መስፋፋት ከቀጠሉ።', 'ከአንድ በላይ ማሳ ተመሳሳይ ምልክት ካሳየ።', 'የምርት መለያ፣ PPE፣ PHI ወይም REI ማረጋገጥ ካልተቻለ።'],
+                'notes' => ['ማንኛውንም ኬሚካል ከመጠቀም በፊት የአካባቢ ምዝገባ እና የምርት መለያ ያረጋግጡ።'],
+            ],
+            'om' => [
+                'headline' => 'Qajeelfama wal’aansa dhukkuba mirkanaa’e',
+                'title' => 'Qajeelfama wal’aansa dhukkuba mirkanaa’e',
+                'summary' => 'Qajeelfamni kun bu’aa qorannoo mirkanaa’e, haala midhaanii fi mallattoolee dirree irratti hundaa’a.',
+                'natural_treatment' => 'Baala baay’ee miidhame of eeggannoon balleessi, jiidhina baalaa hir’isi, qilleensa naanna’aa fooyyessi, haftee dhukkubsatte dirree irraa fageessi.',
+                'modern_treatment' => 'Galtee naannoo keessatti galmaa’e fi midhaan kanaaf hayyamame qofa fayyadami. Hamma, PHI fi REI asxaa oomishaa irraa mirkaneessi.',
+                'dosage' => 'Hamma asxaa oomisha galmaa’e irratti barreeffame qofa hordofi.',
+                'application_timing' => 'Erga ogeessi mirkaneessee booda, yeroo qilleensi tasgabbaa’u fi roobni hin eegamne fayyadami.',
+                'ppe' => 'Guwaantii, haguuggii afaanii, ittisa ijaa, uffata harkaa dheeraa, surree dheeraa fi kophee cufamaa fayyadami.',
+                'restrictions' => 'Galmee naannoo, asxaa midhaanii, hamma, bishaan, PHI, REI fi PPE osoo hin mirkanaa’in hin biifin.',
+                'next_step' => 'Sa’aatii 48 hanga 72 keessatti mallattoolee irra deebi’ii ilaali; yoo babal’ate deeggartaa yookaan ogeessa qunnami.',
+                'verification_note' => 'Gorsi kun erga qorannoon mirkanaa’ee booda kenname; osoo hin biifin asxaa oomishaa mirkaneessi.',
+                'actions' => ['Kutaa miidhame of eeggannoon balleessi.', 'Baalli akka hin jiidhanne mala bishaanii sirreessi.', 'Galtee galmaa’e yoo barbaachise qajeelfama asxaa qofaan fayyadami.'],
+                'monitoring' => ['Sa’aatii 48 hanga 72 booda biqiltuu sana irra deebi’ii ilaali.', 'Mallattooleen gara baala haaraatti babal’achaa jiraachuu galmeessi.', 'Mallattoon wal fakkaatu lafa biraa yoo jiraate beeksisi.'],
+                'prevention' => ['Bakka danda’ametti midhaan jijjiiri.', 'Yeroo dhiibbaa dhukkubaa bishaan baala irratti bu’u hir’isi.', 'Haftee dhukkubsatte erga haamamee booda balleessi.', 'Meeshaa qulqulluu fi sanyii fayyaa qabu fayyadami.'],
+                'escalate_if' => ['Mallattooleen babal’achuu yoo itti fufan.', 'Lafa tokko caalaa mallattoolee wal fakkaatan yoo agarsiise.', 'Asxaa oomishaa, PPE, PHI yookaan REI mirkaneessuu yoo hin dandeenye.'],
+                'notes' => ['Keemikaala kamiyyuu dura galmee naannoo fi asxaa oomishaa mirkaneessi.'],
+            ],
+            'ti' => [
+                'headline' => 'መምርሒ ሕክምና ዝተረጋገጸ ሕማም',
+                'title' => 'መምርሒ ሕክምና ዝተረጋገጸ ሕማም',
+                'summary' => 'እዚ መምርሒ ኣብ ዝተረጋገጸ ምርመራ፣ ኩነታት ሰብልን ምልክታት ማሳን ዝተመርኮሰ እዩ።',
+                'natural_treatment' => 'ብጣዕሚ ዝተጎድኡ ቆጽልታት ብጥንቃቐ ኣውጽእ፣ ርስሓት ቆጽሊ ኣጉድል፣ ምዝውዋር ኣየር ኣሻሽል፣ ዝተሓመመ ተረፍ ካብ ማሳ ኣርሕቕ።',
+                'modern_treatment' => 'ኣብ ከባቢ ዝተመዝገበን ነዚ ሰብል ዝተፈቐደን እታዎት ጥራይ ተጠቐም። መጠን፣ PHIን REIን ካብ መለያ ምርቲ ኣረጋግጽ።',
+                'dosage' => 'ኣብ መለያ ዝተመዝገበ ምርቲ ዝተጻሕፈ መጠን ጥራይ ተኸተል።',
+                'application_timing' => 'ድሕሪ ምርግጋጽ ባለሞያ፣ ንፋስ ምስ ዝሃድእን ዝናብ ምስ ዘይትጽበን ተግብር።',
+                'ppe' => 'ጓንቲ፣ መሸፈኒ/ማስክ፣ መከላኸሊ ዓይኒ፣ ነዊሕ እጅጌ፣ ነዊሕ ስረን ዕጹው ጫማን ተጠቐም።',
+                'restrictions' => 'ምዝገባ ከባቢ፣ መለያ ሰብል፣ መጠን፣ ማይ፣ PHI፣ REIን PPEን ከይተረጋገጸ ኣይትንጸግ።',
+                'next_step' => 'ኣብ ውሽጢ 48 ክሳብ 72 ሰዓታት ምልክታት ደጊምካ ተኸታተል፤ እንተተስፋፍሐ ደጋፊ ወይ ባለሞያ ርኸብ።',
+                'verification_note' => 'እዚ ምኽሪ ድሕሪ ዝተረጋገጸ ምርመራ ተዋሂቡ፤ ቅድሚ ምንጻግ መለያ ምርቲ ኣረጋግጽ።',
+                'actions' => ['ዝተጎድኡ ክፋላት ብጥንቃቐ ኣውጽእ።', 'ቆጽሊ ከይረስሕ ኣገባብ መስኖ ኣስተኻኽል።', 'ዝተመዝገበ እታዎት እንተድለየ ብመምርሒ መለያ ጥራይ ተጠቐም።'],
+                'monitoring' => ['ድሕሪ 48 ክሳብ 72 ሰዓታት ተመሳሳሊ ተኽሊ ደጊምካ ርአ።', 'ምልክታት ናብ ሓደስቲ ቆጽልታት ይተሓላለፉ እንተለዉ መዝግብ።', 'ተመሳሳሊ ምልክት ኣብ ካልእ ማሳ እንተሃለወ ኣፍልጥ።'],
+                'prevention' => ['እንተተኻኢሉ ሰብል ቀያይር።', 'ኣብ ግዜ ጸቕጢ ሕማም ካብ ላዕሊ መስኖ ኣጉድል።', 'ድሕሪ መከር ዝተሓመመ ተረፍ ኣውጽእ።', 'ንጹህ መሳርሒን ጥዑይ ናይ ምትካል ንብረትን ተጠቐም።'],
+                'escalate_if' => ['ምልክታት ምስፍሕፋሕ እንተቐጺሎም።', 'ካብ ሓደ ንላዕሊ ማሳ ተመሳሳሊ ምልክት እንተርኢዩ።', 'መለያ ምርቲ፣ PPE፣ PHI ወይ REI ምርግጋጽ እንተዘይተኻኢሉ።'],
+                'notes' => ['ቅድሚ ዝኾነ ኬሚካል ምጥቃም ምዝገባ ከባቢን መለያ ምርቲን ኣረጋግጽ።'],
+            ],
+            default => [],
+        };
     }
 
     private static function localizedRegistryValue(array $localized, string $lang, string $key): string|array|null

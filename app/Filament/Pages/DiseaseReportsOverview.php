@@ -7,11 +7,13 @@ use App\Models\DiseaseReport;
 use App\Models\User;
 use App\Services\CaseAuditLogger;
 use App\Services\CaseAssignmentService;
+use App\Services\DiseaseReportReviewService;
 use App\Support\RegionScope;
 use App\Support\AuthorityMatrix;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -236,6 +238,27 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ->authorize(fn (DiseaseReport $record): bool => auth()->user()?->can('verify', $record) === true)
                     ->visible(fn (DiseaseReport $record): bool => in_array($record->status, ['new', 'reviewing', 'processing'], true))
                     ->form([
+                        TextInput::make('disease_name')
+                            ->label('Confirmed disease')
+                            ->required()
+                            ->maxLength(100)
+                            ->default(fn (DiseaseReport $record): string => $this->defaultReviewDiseaseName($record)),
+                        Select::make('severity')
+                            ->required()
+                            ->default(fn (DiseaseReport $record): string => (string) ($record->severity ?: 'medium'))
+                            ->options([
+                                'low' => 'Low',
+                                'medium' => 'Medium',
+                                'high' => 'High',
+                                'critical' => 'Critical',
+                            ]),
+                        TextInput::make('confidence_score')
+                            ->label('Confidence score')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(1)
+                            ->step(0.01)
+                            ->default(fn (DiseaseReport $record): ?float => $record->backofficeFindingConfidence()),
                         Select::make('decision_reason_code')
                             ->required()
                             ->options([
@@ -249,24 +272,16 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ])
                     ->requiresConfirmation()
                     ->action(function (DiseaseReport $record, array $data): void {
-                        $from = $record->status;
-                        $record->status = 'confirmed';
-                        $record->verified_by = auth()->id();
-                        $record->verified_at = now();
-                        $record->reviewed_by = auth()->id();
-                        $record->reviewed_at = now();
-                        $record->decision_reason_code = $data['decision_reason_code'];
-                        $record->decision_comment = $data['decision_comment'];
-                        $record->save();
-
-                        CaseAuditLogger::log(
-                            'disease_report',
-                            $record->id,
-                            'confirm',
-                            $from,
-                            $record->status,
-                            $data['decision_comment'],
-                            ['decision_reason_code' => $data['decision_reason_code']]
+                        app(DiseaseReportReviewService::class)->confirm(
+                            $record,
+                            auth()->user(),
+                            (string) $data['disease_name'],
+                            (string) $data['severity'],
+                            isset($data['confidence_score']) && $data['confidence_score'] !== ''
+                                ? (float) $data['confidence_score']
+                                : null,
+                            (string) $data['decision_reason_code'],
+                            $data['decision_comment'] ?? null,
                         );
 
                         Notification::make()->success()->title('Report confirmed')->send();
@@ -291,22 +306,11 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ])
                     ->requiresConfirmation()
                     ->action(function (DiseaseReport $record, array $data): void {
-                        $from = $record->status;
-                        $record->status = 'rejected';
-                        $record->reviewed_by = auth()->id();
-                        $record->reviewed_at = now();
-                        $record->decision_reason_code = $data['decision_reason_code'];
-                        $record->decision_comment = $data['decision_comment'];
-                        $record->save();
-
-                        CaseAuditLogger::log(
-                            'disease_report',
-                            $record->id,
-                            'reject',
-                            $from,
-                            $record->status,
-                            $data['decision_comment'],
-                            ['decision_reason_code' => $data['decision_reason_code']]
+                        app(DiseaseReportReviewService::class)->reject(
+                            $record,
+                            auth()->user(),
+                            (string) $data['decision_reason_code'],
+                            $data['decision_comment'] ?? null,
                         );
 
                         Notification::make()->success()->title('Report rejected')->send();
@@ -457,6 +461,13 @@ class DiseaseReportsOverview extends Page implements HasTable
             $hasAiScores => 'AI only',
             default => 'No evidence',
         };
+    }
+
+    protected function defaultReviewDiseaseName(DiseaseReport $record): string
+    {
+        $name = trim($record->backofficeFindingName());
+
+        return strtolower($name) === 'awaiting analysis' ? '' : $name;
     }
 
     public function cardTone(DiseaseReport $record): string
