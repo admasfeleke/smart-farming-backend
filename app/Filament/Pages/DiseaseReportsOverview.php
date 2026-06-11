@@ -521,6 +521,11 @@ class DiseaseReportsOverview extends Page implements HasTable
             return false;
         }
 
+        $status = strtolower(trim((string) $record->status));
+        if (! in_array($status, ['new', 'reviewing', 'processing'], true)) {
+            return false;
+        }
+
         $role = RegionScope::roleName($user);
         if (! in_array($role, ['super_admin', 'admin', 'supporter'], true)) {
             return false;
@@ -538,6 +543,8 @@ class DiseaseReportsOverview extends Page implements HasTable
             );
         }
 
-        return true;
+        return ! $record->assignments->contains(
+            fn (CaseAssignment $assignment): bool => $assignment->status === 'active'
+        );
     }
 }
