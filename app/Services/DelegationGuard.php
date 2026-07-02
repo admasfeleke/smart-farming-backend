@@ -58,7 +58,7 @@ class DelegationGuard
     {
         $query = Region::query()
             ->where('is_active', 1)
-            ->orderByRaw("FIELD(level, 'region', 'zone', 'woreda', 'kebele')")
+            ->orderByRaw("FIELD(level, 'region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc')")
             ->orderBy('name')
             ->select(['id', 'name', 'level']);
 
@@ -108,7 +108,7 @@ class DelegationGuard
 
         return Region::query()
             ->whereIn('id', $allowed)
-            ->orderByRaw("FIELD(level, 'region', 'zone', 'woreda', 'kebele')")
+            ->orderByRaw("FIELD(level, 'region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc')")
             ->orderBy('name')
             ->get(['id', 'name', 'level'])
             ->mapWithKeys(fn (Region $region): array => [
@@ -346,8 +346,10 @@ class DelegationGuard
             'national' => 1,
             'region' => 2,
             'zone' => 3,
+            'special_woreda' => 4,
             'woreda' => 4,
             'kebele' => 5,
+            'ftc' => 5,
             default => null,
         };
     }
@@ -395,6 +397,14 @@ class DelegationGuard
         $expectedLevel = strtolower(trim($adminLevel));
         $actualLevel = strtolower(trim((string) $region->level));
         if ($expectedLevel === '' || $actualLevel === '') {
+            return;
+        }
+
+        if ($expectedLevel === 'woreda' && $actualLevel === 'special_woreda') {
+            return;
+        }
+
+        if ($expectedLevel === 'kebele' && $actualLevel === 'ftc') {
             return;
         }
 

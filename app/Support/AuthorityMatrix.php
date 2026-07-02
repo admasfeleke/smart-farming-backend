@@ -55,7 +55,7 @@ class AuthorityMatrix
 
         // Backward-compatible fallback: infer level from assigned region hierarchy when admin_level is not set.
         $regionLevel = strtolower(trim((string) optional($user->region)->level));
-        if (in_array($regionLevel, ['region', 'zone', 'woreda', 'kebele'], true)) {
+        if (in_array($regionLevel, ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'], true)) {
             return $regionLevel;
         }
 

@@ -31,9 +31,9 @@ class RegionsTableSeeder extends Seeder
             ['id' => 2005, 'name' => 'Halaba Zone', 'parent_id' => 1005, 'level' => 'zone'],
             ['id' => 2006, 'name' => 'Kembata Zone', 'parent_id' => 1005, 'level' => 'zone'],
             ['id' => 2007, 'name' => 'Yem Zone', 'parent_id' => 1005, 'level' => 'zone'],
-            ['id' => 2008, 'name' => 'Kebena Special Woreda', 'parent_id' => 1005, 'level' => 'zone'],
-            ['id' => 2009, 'name' => 'Mareko Special Woreda', 'parent_id' => 1005, 'level' => 'zone'],
-            ['id' => 2010, 'name' => 'Tembaro Special Woreda', 'parent_id' => 1005, 'level' => 'zone'],
+            ['id' => 2008, 'name' => 'Kebena Special Woreda', 'parent_id' => 1005, 'level' => 'special_woreda'],
+            ['id' => 2009, 'name' => 'Mareko Special Woreda', 'parent_id' => 1005, 'level' => 'special_woreda'],
+            ['id' => 2010, 'name' => 'Tembaro Special Woreda', 'parent_id' => 1005, 'level' => 'special_woreda'],
             ['id' => 3001, 'name' => 'Dalocha Woreda', 'parent_id' => 2003, 'level' => 'woreda'],
             ['id' => 3002, 'name' => 'Silti Woreda', 'parent_id' => 2003, 'level' => 'woreda'],
             ['id' => 3003, 'name' => 'Lanfuro Woreda', 'parent_id' => 2003, 'level' => 'woreda'],
@@ -43,6 +43,7 @@ class RegionsTableSeeder extends Seeder
             ['id' => 3007, 'name' => 'Misrak Azernet Berbere Woreda', 'parent_id' => 2003, 'level' => 'woreda'],
             ['id' => 4001, 'name' => 'Dalocha Town', 'parent_id' => 3001, 'level' => 'kebele'],
             ['id' => 4002, 'name' => 'Kebele not listed', 'parent_id' => 3001, 'level' => 'kebele'],
+            ['id' => 4003, 'name' => 'Dalocha Farmer Training Center', 'parent_id' => 3001, 'level' => 'ftc'],
         ];
 
         foreach ($regions as $region) {

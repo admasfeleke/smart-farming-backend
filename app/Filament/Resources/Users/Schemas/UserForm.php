@@ -77,7 +77,7 @@ class UserForm
                         ->searchable()
                         ->preload()
                         ->visible(fn (callable $get): bool => self::isBackofficeRoleId($get('role_id')))
-                        ->helperText('Delegate extra zones/woredas/kebeles under the selected primary region.'),
+                        ->helperText('Delegate extra zones, special woredas, woredas, kebeles, or FTCs under the selected primary region.'),
 
                     \Filament\Forms\Components\Toggle::make('is_active')
                         ->label('Active')

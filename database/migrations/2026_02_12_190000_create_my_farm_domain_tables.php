@@ -21,7 +21,7 @@ return new class extends Migration
                 $table->id();
                 $table->string('name', 100);
                 $table->foreignId('parent_id')->nullable()->constrained('regions')->nullOnDelete();
-                $table->enum('level', ['region', 'zone', 'woreda', 'kebele']);
+                $table->enum('level', ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc']);
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
             });
@@ -94,4 +94,3 @@ return new class extends Migration
         // Intentionally non-destructive: no table drops on rollback.
     }
 };
-

@@ -25,23 +25,25 @@ class RegionForm
                 ->options([
                     'region' => 'Region',
                     'zone' => 'Zone',
+                    'special_woreda' => 'Special Woreda',
                     'woreda' => 'Woreda',
                     'kebele' => 'Kebele',
+                    'ftc' => 'Farmer Training Center',
                 ]),
 
             Select::make('parent_id')
                 ->label('Parent Region')
                 ->options(function (Get $get): array {
                     $level = strtolower((string) $get('level'));
-                    $expectedParentLevel = Region::expectedParentLevel($level);
-                    if ($expectedParentLevel === null) {
+                    $expectedParentLevels = Region::expectedParentLevels($level);
+                    if ($expectedParentLevels === []) {
                         return [];
                     }
 
                     $currentId = $get('id');
 
                     return Region::query()
-                        ->where('level', $expectedParentLevel)
+                        ->whereIn('level', $expectedParentLevels)
                         ->where('is_active', 1)
                         ->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))
                         ->orderBy('name')
@@ -56,8 +58,10 @@ class RegionForm
                     return match ($level) {
                         Region::LEVEL_REGION => 'Top level. No parent required.',
                         Region::LEVEL_ZONE => 'Zone parent must be a region.',
+                        Region::LEVEL_SPECIAL_WOREDA => 'Special woreda parent must be a region.',
                         Region::LEVEL_WOREDA => 'Woreda parent must be a zone.',
-                        Region::LEVEL_KEBELE => 'Kebele parent must be a woreda.',
+                        Region::LEVEL_KEBELE => 'Kebele parent must be a woreda or special woreda.',
+                        Region::LEVEL_FTC => 'FTC parent must be a woreda or special woreda.',
                         default => 'Select level first.',
                     };
                 }),

@@ -12,14 +12,18 @@ class Region extends Model
 
     public const LEVEL_REGION = 'region';
     public const LEVEL_ZONE = 'zone';
+    public const LEVEL_SPECIAL_WOREDA = 'special_woreda';
     public const LEVEL_WOREDA = 'woreda';
     public const LEVEL_KEBELE = 'kebele';
+    public const LEVEL_FTC = 'ftc';
 
     public const LEVELS = [
         self::LEVEL_REGION,
         self::LEVEL_ZONE,
+        self::LEVEL_SPECIAL_WOREDA,
         self::LEVEL_WOREDA,
         self::LEVEL_KEBELE,
+        self::LEVEL_FTC,
     ];
 
     protected $fillable = [
@@ -36,7 +40,7 @@ class Region extends Model
 
             if (! in_array($region->level, self::LEVELS, true)) {
                 throw ValidationException::withMessages([
-                    'level' => ['Invalid level. Allowed: region, zone, woreda, kebele.'],
+                    'level' => ['Invalid level. Allowed: region, zone, special_woreda, woreda, kebele, ftc.'],
                 ]);
             }
 
@@ -62,10 +66,10 @@ class Region extends Model
                 ]);
             }
 
-            $expected = self::expectedChildLevel($parent->level);
-            if ($expected === null || $region->level !== $expected) {
+            $expected = self::expectedChildLevels($parent->level);
+            if ($expected === [] || ! in_array($region->level, $expected, true)) {
                 throw ValidationException::withMessages([
-                    'level' => ["Invalid hierarchy. A {$parent->level} can only have {$expected} children."],
+                    'level' => ["Invalid hierarchy. A {$parent->level} can only have ".implode(' or ', $expected).' children.'],
                 ]);
             }
 
@@ -92,21 +96,41 @@ class Region extends Model
 
     public static function expectedChildLevel(?string $parentLevel): ?string
     {
+        $levels = self::expectedChildLevels($parentLevel);
+
+        return $levels[0] ?? null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function expectedChildLevels(?string $parentLevel): array
+    {
         return match (strtolower((string) $parentLevel)) {
-            self::LEVEL_REGION => self::LEVEL_ZONE,
-            self::LEVEL_ZONE => self::LEVEL_WOREDA,
-            self::LEVEL_WOREDA => self::LEVEL_KEBELE,
-            default => null,
+            self::LEVEL_REGION => [self::LEVEL_ZONE, self::LEVEL_SPECIAL_WOREDA],
+            self::LEVEL_ZONE => [self::LEVEL_WOREDA],
+            self::LEVEL_SPECIAL_WOREDA, self::LEVEL_WOREDA => [self::LEVEL_KEBELE, self::LEVEL_FTC],
+            default => [],
         };
     }
 
     public static function expectedParentLevel(?string $level): ?string
     {
+        $levels = self::expectedParentLevels($level);
+
+        return $levels[0] ?? null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function expectedParentLevels(?string $level): array
+    {
         return match (strtolower((string) $level)) {
-            self::LEVEL_ZONE => self::LEVEL_REGION,
-            self::LEVEL_WOREDA => self::LEVEL_ZONE,
-            self::LEVEL_KEBELE => self::LEVEL_WOREDA,
-            default => null,
+            self::LEVEL_ZONE, self::LEVEL_SPECIAL_WOREDA => [self::LEVEL_REGION],
+            self::LEVEL_WOREDA => [self::LEVEL_ZONE],
+            self::LEVEL_KEBELE, self::LEVEL_FTC => [self::LEVEL_WOREDA, self::LEVEL_SPECIAL_WOREDA],
+            default => [],
         };
     }
 

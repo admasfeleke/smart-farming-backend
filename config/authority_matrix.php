@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Levels:
-    | - national, region, zone, woreda, kebele
+    | - national, region, zone, special_woreda, woreda, kebele, ftc
     |
     | Rules:
     | - super_admin is national governance.
@@ -19,16 +19,16 @@ return [
     'actions' => [
         'farm.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'farm.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'farm.create' => [
@@ -43,16 +43,16 @@ return [
 
         'plot.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'plot.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'plot.create' => [
@@ -67,16 +67,16 @@ return [
 
         'planting.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'planting.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'planting.create' => [
@@ -91,133 +91,134 @@ return [
 
         'disease_report.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'disease_report.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'disease_report.create' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'disease_report.verify' => [
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
 
         'alert.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'alert.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'alert.create' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
         'alert.update' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'alert.delete' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
 
         'soil_health.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'soil_health.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'soil_health.create' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'soil_health.update' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'soil_health.delete' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
             'farmer' => ['*'],
         ],
         'soil_health.verify' => [
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
 
         'case_assignment.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
         'case_assignment.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
         'case_assignment.update' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
-            'supporter' => ['region', 'zone', 'woreda', 'kebele'],
-            'expert' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'supporter' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
+            'expert' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
 
         'case_audit_log.view_any' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
         'case_audit_log.view' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
 
         'delegation.manage' => [
             'super_admin' => ['national'],
-            'admin' => ['region', 'zone', 'woreda', 'kebele'],
+            'admin' => ['region', 'zone', 'special_woreda', 'woreda', 'kebele', 'ftc'],
         ],
     ],
 ];
+

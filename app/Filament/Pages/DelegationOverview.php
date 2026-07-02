@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\User;
 use App\Services\DelegationGuard;
+use App\Support\BureaucracyProfile;
 use App\Support\RegionScope;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -57,16 +58,22 @@ class DelegationOverview extends Page implements HasTable
                     ])
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('bureaucratic_title')
+                    ->label('Office Title')
+                    ->state(fn (User $record): string => BureaucracyProfile::displayTitleFor($record))
+                    ->wrap()
+                    ->limit(42),
+
                 Tables\Columns\TextColumn::make('admin_level')
                     ->label('Delegation Level')
                     ->badge()
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('region.name')
                     ->label('Primary Region')
                     ->sortable()
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->wrap()
                     ->limit(36),
 

@@ -10,15 +10,15 @@ class RolesTableSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            ['name' => 'super_admin', 'description' => 'Platform super administrator'],
-            ['name' => 'admin', 'description' => 'System administrator'],
-            ['name' => 'supporter', 'description' => 'Regional supporter / verifier'],
-            ['name' => 'expert', 'description' => 'Agronomy expert'],
-            ['name' => 'farmer', 'description' => 'Farmer mobile user'],
+            ['name' => 'super_admin', 'description' => 'Platform governance and configuration administrator'],
+            ['name' => 'admin', 'description' => 'Agriculture office coordinator within assigned administrative scope'],
+            ['name' => 'supporter', 'description' => 'Development agent or extension worker for first-line farmer support'],
+            ['name' => 'expert', 'description' => 'Subject matter specialist for crop, soil, weather, and treatment decisions'],
+            ['name' => 'farmer', 'description' => 'Farmer mobile user operating own farm records'],
         ];
 
         foreach ($roles as $role) {
-            Role::firstOrCreate(
+            Role::query()->updateOrCreate(
                 ['name' => $role['name']],
                 ['description' => $role['description']]
             );

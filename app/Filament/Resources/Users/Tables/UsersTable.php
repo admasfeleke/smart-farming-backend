@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\User;
+use App\Support\BureaucracyProfile;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -25,6 +27,13 @@ class UsersTable
                     ->label('Role')
                     ->badge()
                     ->sortable(),
+
+                \Filament\Tables\Columns\TextColumn::make('bureaucratic_title')
+                    ->label('Office Title')
+                    ->state(fn (User $record): string => BureaucracyProfile::displayTitleFor($record))
+                    ->wrap()
+                    ->limit(42)
+                    ->toggleable(),
 
                 \Filament\Tables\Columns\TextColumn::make('region.name')
                     ->label('Region')
