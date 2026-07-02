@@ -209,6 +209,43 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ->sortable()
                     ->toggleable(),
             ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Review status')
+                    ->options([
+                        'new' => 'New',
+                        'reviewing' => 'Reviewing',
+                        'processing' => 'Processing',
+                        'confirmed' => 'Confirmed',
+                        'rejected' => 'Rejected',
+                    ]),
+                Tables\Filters\SelectFilter::make('severity')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                        'critical' => 'Critical',
+                    ]),
+                Tables\Filters\SelectFilter::make('image_path')
+                    ->label('Image evidence')
+                    ->options([
+                        'has_image' => 'Has image',
+                        'no_image' => 'No image',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+
+                        if ($value === 'has_image') {
+                            return $query->whereNotNull('image_path');
+                        }
+
+                        if ($value === 'no_image') {
+                            return $query->whereNull('image_path');
+                        }
+
+                        return $query;
+                    }),
+            ])
             ->recordAction('viewDetails')
             ->actions([
                 Action::make('viewDetails')

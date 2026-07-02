@@ -51,7 +51,7 @@ class Dashboard extends BaseDashboard
 
         return match (RegionScope::roleName($user)) {
             'super_admin' => [
-                AccountWidget::class,
+                //AccountWidget::class,
                 AdminSystemStats::class,
                 AccountabilityOpsStats::class,
                 DiseaseTrendChart::class,
@@ -62,16 +62,16 @@ class Dashboard extends BaseDashboard
                 ExpertResolutionTimeChart::class,
             ],
             'admin' => [
-                AccountWidget::class,
+                //AccountWidget::class,
                 AccountabilityOpsStats::class,
                 AdminScopeStats::class,
             ],
             'supporter' => [
-                AccountWidget::class,
+                //AccountWidget::class,
                 RoleWorkbenchStats::class,
             ],
             'expert' => [
-                AccountWidget::class,
+                //AccountWidget::class,
                 RoleWorkbenchStats::class,
                 ExpertResolutionTimeChart::class,
             ],
