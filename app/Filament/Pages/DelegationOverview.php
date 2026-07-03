@@ -71,14 +71,14 @@ class DelegationOverview extends Page implements HasTable
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('region.name')
-                    ->label('Primary Administrative Unit')
+                    ->label('Primary Office Scope')
                     ->sortable()
                     ->placeholder('-')
                     ->wrap()
                     ->limit(36),
 
                 Tables\Columns\TextColumn::make('scoped_regions_count')
-                    ->label('Extra Administrative Scopes')
+                    ->label('Additional Office Scopes')
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_active')
@@ -98,7 +98,7 @@ class DelegationOverview extends Page implements HasTable
 
                 Tables\Filters\SelectFilter::make('region')
                     ->relationship('region', 'name')
-                    ->label('Primary Administrative Unit'),
+                    ->label('Primary Office Scope'),
 
                 Tables\Filters\SelectFilter::make('admin_level')
                     ->options([
