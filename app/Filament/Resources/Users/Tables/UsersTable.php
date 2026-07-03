@@ -36,7 +36,7 @@ class UsersTable
                     ->toggleable(),
 
                 \Filament\Tables\Columns\TextColumn::make('region.name')
-                    ->label('Region')
+                    ->label('Administrative Unit')
                     ->sortable()
                     ->wrap()
                     ->limit(36)
@@ -64,7 +64,7 @@ class UsersTable
 
                 \Filament\Tables\Filters\SelectFilter::make('region')
                     ->relationship('region', 'name')
-                    ->label('Region'),
+                    ->label('Administrative Unit'),
             ])
             ->actions([
                 EditAction::make(),

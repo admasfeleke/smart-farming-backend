@@ -109,7 +109,7 @@ class AlertsOverview extends Page implements HasTable
                     ->limit(32),
 
                 Tables\Columns\TextColumn::make('diseaseReport.plot.farm.region.name')
-                    ->label('Region')
+                    ->label('Administrative Unit')
                     ->wrap()
                     ->limit(32)
                     ->toggleable(isToggledHiddenByDefault: true),

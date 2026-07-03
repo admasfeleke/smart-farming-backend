@@ -11,6 +11,86 @@ use InvalidArgumentException;
 
 class DiseaseReportReviewService
 {
+    public function triage(
+        DiseaseReport $report,
+        User $reviewer,
+        string $decision,
+        ?float $confidenceScore,
+        string $reasonCode,
+        ?string $comment,
+    ): DiseaseReport {
+        $decision = strtolower(trim($decision));
+        if (! in_array($decision, ['confirmed', 'rejected'], true)) {
+            throw new InvalidArgumentException('Triage decision must be confirmed or rejected.');
+        }
+
+        $from = (string) $report->status;
+        $comment = trim((string) $comment);
+        $decisionReason = $decision === 'confirmed'
+            ? ($reasonCode !== '' ? $reasonCode : 'supporter_triage')
+            : ($reasonCode !== '' ? $reasonCode : 'supporter_reject_flag');
+
+        return DB::transaction(function () use (
+            $report,
+            $reviewer,
+            $decision,
+            $confidenceScore,
+            $decisionReason,
+            $comment,
+            $from
+        ): DiseaseReport {
+            $payload = [
+                'status' => 'processing',
+            ];
+
+            if ($confidenceScore !== null) {
+                $payload['confidence_score'] = max(0.0, min(1.0, $confidenceScore));
+            }
+            if (Schema::hasColumn('disease_reports', 'reviewed_by')) {
+                $payload['reviewed_by'] = $reviewer->id;
+            }
+            if (Schema::hasColumn('disease_reports', 'reviewed_at')) {
+                $payload['reviewed_at'] = now();
+            }
+            if (Schema::hasColumn('disease_reports', 'decision_reason_code')) {
+                $payload['decision_reason_code'] = $decisionReason;
+            }
+            if (Schema::hasColumn('disease_reports', 'decision_comment')) {
+                $payload['decision_comment'] = $comment !== '' ? $comment : 'Supporter triage recorded.';
+            }
+            if (Schema::hasColumn('disease_reports', 'scan_metadata')) {
+                $payload['scan_metadata'] = is_array($report->scan_metadata) ? $report->scan_metadata : [];
+                $payload['scan_metadata']['workflow_triage_status'] = $decision;
+                $payload['scan_metadata']['workflow_triaged_by'] = $reviewer->id;
+                $payload['scan_metadata']['workflow_triaged_at'] = now()->toISOString();
+            }
+
+            $report->forceFill($payload)->save();
+
+            app(CaseAssignmentService::class)->escalateDiseaseReportToExpert(
+                $report,
+                $reviewer,
+                $comment !== '' ? $comment : 'Escalated to expert after supporter triage.'
+            );
+
+            CaseAuditLogger::log(
+                'disease_report',
+                $report->id,
+                'triage',
+                $from,
+                'processing',
+                $comment !== '' ? $comment : 'Supporter triage recorded.',
+                [
+                    'decision_reason_code' => $decisionReason,
+                    'reviewer_user_id' => $reviewer->id,
+                    'supporter_decision' => $decision,
+                ],
+            );
+
+            return $report->refresh();
+        });
+    }
+
     public function confirm(
         DiseaseReport $report,
         User $reviewer,

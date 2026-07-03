@@ -94,7 +94,7 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                     ->limit(32),
 
                 Tables\Columns\TextColumn::make('plot.farm.region.name')
-                    ->label('Region')
+                    ->label('Administrative Unit')
                     ->sortable()
                     ->wrap()
                     ->limit(36),

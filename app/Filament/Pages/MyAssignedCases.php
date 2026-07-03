@@ -105,19 +105,13 @@ class MyAssignedCases extends Page implements HasTable
                     ->wrap()
                     ->limit(36),
                 Tables\Columns\TextColumn::make('regionName')
-                    ->label('Region')
+                    ->label('Administrative Unit')
                     ->state(fn (CaseAssignment $record): string => $record->case_type === 'soil_health'
                         ? (string) ($record->soilHealth?->plot?->farm?->region?->name ?? '-')
                         : (string) ($record->diseaseReport?->plot?->farm?->region?->name ?? '-'))
                     ->wrap()
                     ->limit(36)
                     ->toggleable(),
-                /*Tables\Columns\TextColumn::make('diseaseReport.crop.name')
-                    ->label('Crop'),
-                Tables\Columns\TextColumn::make('diseaseReport.plot.farm.farm_name')
-                    ->label('Farm'),
-                Tables\Columns\TextColumn::make('diseaseReport.plot.farm.region.name')
-                    ->label('Region'),*/
                 Tables\Columns\TextColumn::make('priority')
                     ->badge()
                     ->colors([

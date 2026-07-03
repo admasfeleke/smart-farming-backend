@@ -60,13 +60,13 @@ class FarmersOverview extends Page implements HasTable
 
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Phone')
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->searchable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('region.name')
-                    ->label('Region')
-                    ->placeholder('—')
+                    ->label('Administrative Unit')
+                    ->placeholder('-')
                     ->sortable()
                     ->wrap()
                     ->limit(36),
@@ -89,7 +89,7 @@ class FarmersOverview extends Page implements HasTable
             ->filters([
                 Tables\Filters\SelectFilter::make('region')
                     ->relationship('region', 'name')
-                    ->label('Region'),
+                    ->label('Administrative Unit'),
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active Status'),

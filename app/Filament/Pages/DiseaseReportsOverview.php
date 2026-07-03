@@ -183,7 +183,7 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ]),
 
                 Tables\Columns\TextColumn::make('plot.farm.region.name')
-                    ->label('Location')
+                    ->label('Administrative Unit')
                     ->description(fn (DiseaseReport $record): string => $record->plot?->plot_name
                         ? 'Plot: '.$record->plot->plot_name
                         : '')
@@ -564,7 +564,7 @@ class DiseaseReportsOverview extends Page implements HasTable
         }
 
         $role = RegionScope::roleName($user);
-        if (! in_array($role, ['super_admin', 'admin', 'supporter'], true)) {
+        if (! in_array($role, ['supporter'], true)) {
             return false;
         }
 
@@ -572,16 +572,10 @@ class DiseaseReportsOverview extends Page implements HasTable
             return false;
         }
 
-        if ($role === 'supporter') {
-            return $record->assignments->contains(
-                fn (CaseAssignment $assignment): bool =>
-                    $assignment->status === 'active'
-                    && (int) $assignment->assigned_to_user_id === (int) $user->id
-            );
-        }
-
-        return ! $record->assignments->contains(
-            fn (CaseAssignment $assignment): bool => $assignment->status === 'active'
+        return $record->assignments->contains(
+            fn (CaseAssignment $assignment): bool =>
+                $assignment->status === 'active'
+                && (int) $assignment->assigned_to_user_id === (int) $user->id
         );
     }
 }

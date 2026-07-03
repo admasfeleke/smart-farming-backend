@@ -7,7 +7,6 @@ use App\Models\Crop;
 use App\Models\Plot;
 use App\Models\Planting;
 use App\Models\User;
-use App\Models\WeatherData;
 use App\Models\SoilHealth;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -16,6 +15,11 @@ use Illuminate\Support\Str;
 
 class DiseasePreventionService
 {
+    public function __construct(
+        protected WeatherContextService $weatherContextService,
+    ) {
+    }
+
     public function analyzeAndGeneratePreventiveAlerts(
         ?int $farmId = null,
         ?int $plotId = null,
@@ -55,13 +59,7 @@ class DiseasePreventionService
         array $overrideConditions = [],
         array &$summary = [],
     ): void {
-        $weatherCollection = $overrideConditions === []
-            ? WeatherData::forPlot($plot->id)->recent()->get()
-            : collect([$overrideConditions]);
-
-        if ($weatherCollection->isEmpty()) {
-            return;
-        }
+        $weatherContext = $this->weatherContextService->buildForPlot($plot, $overrideConditions);
 
         $summary['plots_considered'] = ($summary['plots_considered'] ?? 0) + 1;
 
@@ -80,39 +78,61 @@ class DiseasePreventionService
 
         foreach ($plantings as $planting) {
             $summary['plantings_considered'] = ($summary['plantings_considered'] ?? 0) + 1;
-            $created = $this->analyzePlantingRisk($planting, $weatherCollection);
+            $created = $this->analyzePlantingRisk($planting, $weatherContext);
             if ($created) {
                 $summary['alerts_created'] = ($summary['alerts_created'] ?? 0) + 1;
             }
         }
     }
 
-    protected function analyzePlantingRisk(Planting $planting, Collection $weatherData): bool
+    protected function analyzePlantingRisk(Planting $planting, array $weatherContext): bool
     {
         $analysis = $this->buildPreventionAnalysis(
             $planting->crop_id,
-            $this->collectObservedConditions($planting->plot, $weatherData)
+            $this->collectObservedConditions($planting->plot, $weatherContext)
         );
 
         return $this->generateRiskAlerts($planting, $analysis);
     }
 
-    protected function collectObservedConditions(Plot $plot, Collection $weatherData): array
+    protected function collectObservedConditions(Plot $plot, array $weatherContext): array
     {
         $latestSoil = SoilHealth::forPlot($plot->id)->latest('test_date')->first();
+        $observed = $weatherContext['observed'] ?? [];
+        $forecast = $weatherContext['forecast'] ?? [];
+        $combined = $weatherContext['combined'] ?? [];
 
         return [
-            'temperature' => $weatherData->avg('temperature'),
-            'humidity' => $weatherData->avg('humidity'),
-            'precipitation' => $weatherData->sum('precipitation'),
-            'soil_moisture' => $weatherData->avg('soil_moisture') ?? $latestSoil?->moisture_level,
+            'temperature' => $this->firstAvailable([
+                $combined['temperature'] ?? null,
+                $observed['temperature'] ?? null,
+                $forecast['temperature'] ?? null,
+            ]),
+            'humidity' => $this->firstAvailable([
+                $combined['humidity'] ?? null,
+                $observed['humidity'] ?? null,
+                $forecast['humidity'] ?? null,
+            ]),
+            'precipitation' => $this->firstAvailable([
+                $combined['precipitation'] ?? null,
+                $observed['precipitation'] ?? null,
+                $forecast['precipitation'] ?? null,
+            ]),
+            'soil_moisture' => $this->firstAvailable([
+                $combined['soil_moisture'] ?? null,
+                $observed['soil_moisture'] ?? null,
+                $forecast['soil_moisture'] ?? null,
+                $latestSoil?->moisture_level,
+            ]),
             'soil_ph' => $latestSoil?->ph_level,
             'soil_type' => $latestSoil?->soil_type ?: $plot->soil_type,
             'soil_nitrogen' => $latestSoil?->nitrogen,
             'soil_phosphorus' => $latestSoil?->phosphorus,
             'soil_potassium' => $latestSoil?->potassium,
             'organic_matter' => $latestSoil?->organic_matter,
-            'weather_samples' => $weatherData->count(),
+            'weather_samples' => $weatherContext['total_records'] ?? 0,
+            'weather_source' => $observed['source'] ?? null,
+            'forecast_available' => (bool) data_get($weatherContext, 'forecast.available', false),
         ];
     }
 
@@ -378,6 +398,17 @@ class DiseasePreventionService
                 'soil_type' => $soilType !== '' ? $soilType : null,
             ], static fn ($value) => $value !== null && $value !== ''),
         ];
+    }
+
+    protected function firstAvailable(array $values): mixed
+    {
+        foreach ($values as $value) {
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     protected function buildHeadline(string $cropName, string $riskLevel, array $riskDrivers): string

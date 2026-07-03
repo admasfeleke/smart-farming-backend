@@ -40,8 +40,7 @@ class DiseaseReportResource extends JsonResource
         $storedCanonicalName = $this->meaningfulDiseaseKey($rawDiseaseName);
         $status = strtolower(trim((string) ($this->status ?? '')));
         $hasVerifiedDecision = in_array($status, ['confirmed', 'verified'], true)
-            || $this->verified_at !== null
-            || $this->reviewed_at !== null;
+            || $this->verified_at !== null;
         $namingStage = $this->namingStage(
             $hasVerifiedDecision,
             $verifiedDisplayName,
@@ -92,6 +91,8 @@ class DiseaseReportResource extends JsonResource
             'confidence_score' => $this->confidence_score,
             'severity' => $this->severity,
             'status' => $this->status,
+            'farmer_visible_status_key' => $this->farmerVisibleStatusKey(),
+            'farmer_visible_status' => $this->farmerVisibleStatusLabel(),
             'decision_reason_code' => $this->decision_reason_code,
             'decision_comment' => $this->decision_comment,
             'reviewed_at' => optional($this->reviewed_at)->toISOString(),

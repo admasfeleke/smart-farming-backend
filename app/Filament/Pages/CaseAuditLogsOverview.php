@@ -76,7 +76,7 @@ class CaseAuditLogsOverview extends Page implements HasTable
                     ->label('Role')
                     ->badge(),
                 Tables\Columns\TextColumn::make('actor_region_id')
-                    ->label('Actor Region')
+                    ->label('Actor Scope')
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('note')
                     ->limit(56)

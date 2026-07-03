@@ -2,7 +2,7 @@
     <x-filament::section>
         <div class="text-sm text-gray-600">
             This matrix is loaded from <code>config/authority_matrix.php</code> and shows role-level action permissions.
-            Region scope constraints are applied additionally by policy checks.
+            Administrative scope constraints are applied additionally by policy checks.
         </div>
     </x-filament::section>
 
@@ -49,4 +49,3 @@
         </div>
     </x-filament::section>
 </x-filament-panels::page>
-

@@ -15,6 +15,7 @@ use App\Models\Plot;
 use App\Models\User;
 use App\Services\CaseAuditLogger;
 use App\Services\CaseAssignmentService;
+use App\Services\DiseaseReportReviewService;
 use App\Services\InferencePipelineService;
 use App\Support\RegionScope;
 use Illuminate\Database\QueryException;
@@ -353,6 +354,11 @@ class DiseaseReportController extends Controller
     public function verify(Request $request, DiseaseReport $report): DiseaseReportResource
     {
         $this->authorize('verify', $report);
+        $role = RegionScope::roleName($request->user());
+        if (! in_array($role, ['supporter', 'expert'], true)) {
+            abort(403, 'Only supporter or expert roles can review disease reports.');
+        }
+
         $strictAccountability = filter_var(env('ENFORCE_ACCOUNTABILITY_FIELDS', false), FILTER_VALIDATE_BOOL);
 
         $data = $request->validate([
@@ -368,64 +374,64 @@ class DiseaseReportController extends Controller
         ]);
 
         $decisionReasonCode = $data['decision_reason_code']
-            ?? ($data['status'] === 'confirmed' ? 'expert_confirmed' : 'insufficient_evidence');
+            ?? ($role === 'expert'
+                ? ($data['status'] === 'confirmed' ? 'expert_confirmed' : 'expert_rejected')
+                : ($data['status'] === 'confirmed' ? 'supporter_triage' : 'supporter_triage_reject'));
         $decisionComment = $data['decision_comment']
-            ?? ($data['description'] ?? 'Supporter decision recorded.');
+            ?? ($data['description'] ?? ($role === 'expert' ? 'Expert decision recorded.' : 'Supporter triage recorded.'));
 
-        $updatePayload = [
-            'disease_name' => $data['disease_name'],
-            'severity' => $data['severity'],
-            'description' => $data['description'] ?? $report->description,
-            'confidence_score' => $data['confidence_score'] ?? $report->confidence_score,
-            'status' => $data['status'],
-        ];
+        $reviewService = app(DiseaseReportReviewService::class);
 
-        if (Schema::hasColumn('disease_reports', 'reviewed_by')) {
-            $updatePayload['reviewed_by'] = $request->user()->id;
-        }
-        if (Schema::hasColumn('disease_reports', 'reviewed_at')) {
-            $updatePayload['reviewed_at'] = now();
-        }
-        if (Schema::hasColumn('disease_reports', 'decision_reason_code')) {
-            $updatePayload['decision_reason_code'] = $decisionReasonCode;
-        }
-        if (Schema::hasColumn('disease_reports', 'decision_comment')) {
-            $updatePayload['decision_comment'] = $decisionComment;
-        }
-        if (Schema::hasColumn('disease_reports', 'verified_by')) {
-            $updatePayload['verified_by'] = $data['status'] === 'confirmed' ? $request->user()->id : null;
-        }
-        if (Schema::hasColumn('disease_reports', 'verified_at')) {
-            $updatePayload['verified_at'] = $data['status'] === 'confirmed' ? now() : null;
-        }
-        if (Schema::hasColumn('disease_reports', 'scan_metadata')) {
-            $updatePayload['scan_metadata'] = $this->mergeReviewNamingMetadata(
-                is_array($report->scan_metadata) ? $report->scan_metadata : [],
+        if ($role === 'supporter') {
+            $report = $reviewService->triage(
+                $report,
+                $request->user(),
                 $data['status'],
-                $data['disease_name']
+                $data['confidence_score'] ?? $report->confidence_score,
+                $decisionReasonCode,
+                $decisionComment,
+            );
+        } else {
+            $report = DB::transaction(function () use ($report, $request, $data, $decisionReasonCode, $decisionComment, $reviewService) {
+                $reviewedReport = $data['status'] === 'confirmed'
+                    ? $reviewService->confirm(
+                        $report,
+                        $request->user(),
+                        $data['disease_name'],
+                        $data['severity'],
+                        $data['confidence_score'] ?? null,
+                        $decisionReasonCode,
+                        $decisionComment,
+                    )
+                    : $reviewService->reject(
+                        $report,
+                        $request->user(),
+                        $decisionReasonCode,
+                        $decisionComment,
+                    );
+
+                return $reviewedReport;
+            });
+        }
+
+        if ($request->hasFile('evidence') && Schema::hasTable('disease_report_evidence')) {
+            $kind = $role === 'supporter'
+                ? 'supporter_triage_evidence'
+                : (($data['status'] ?? '') === 'confirmed'
+                    ? 'expert_annotation'
+                    : 'rejection_evidence');
+            $caption = trim((string) ($data['evidence_caption'] ?? ''));
+            if ($caption === '') {
+                $caption = $decisionComment;
+            }
+            $this->storeReviewEvidence(
+                $report,
+                $request->file('evidence'),
+                $request->user()->id,
+                $kind,
+                $caption
             );
         }
-
-        DB::transaction(function () use ($report, $request, $data, $updatePayload, $decisionComment) {
-            $report->update($updatePayload);
-
-            if ($request->hasFile('evidence') && Schema::hasTable('disease_report_evidence')) {
-                $kind = ($data['status'] ?? '') === 'confirmed'
-                    ? 'expert_annotation'
-                    : 'rejection_evidence';
-                $caption = trim((string) ($data['evidence_caption'] ?? ''));
-                if ($caption === '') {
-                    $caption = $decisionComment;
-                }
-                $this->storeReviewEvidence(
-                    $report,
-                    $request->file('evidence'),
-                    $request->user()->id,
-                    $kind,
-                    $caption
-                );
-            }
-        });
 
         $report = $report->fresh();
         $this->loadReportRelations($report);

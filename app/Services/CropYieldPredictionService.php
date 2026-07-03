@@ -6,12 +6,16 @@ use App\Models\Crop;
 use App\Models\Planting;
 use App\Models\Plot;
 use App\Models\SoilHealth;
-use App\Models\WeatherData;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class CropYieldPredictionService
 {
+    public function __construct(
+        protected WeatherContextService $weatherContextService,
+    ) {
+    }
+
     /**
      * Predict crop yield using crop history, current soil/weather context,
      * and the planting's current progress toward harvest.
@@ -108,6 +112,11 @@ class CropYieldPredictionService
 
     protected function getCurrentEnvironmentalFactors(Plot $plot, array $currentConditions): array
     {
+        $weatherContext = $this->weatherContextService->buildForPlot($plot, $currentConditions);
+        $observed = $weatherContext['observed'] ?? [];
+        $forecast = $weatherContext['forecast'] ?? [];
+        $combined = $weatherContext['combined'] ?? [];
+
         $factors = [
             'temperature' => null,
             'humidity' => null,
@@ -118,21 +127,23 @@ class CropYieldPredictionService
             'soil_type' => $plot->soil_type,
             'weather_observed_at' => null,
             'soil_test_date' => null,
+            'forecast_temperature' => null,
+            'forecast_humidity' => null,
+            'forecast_precipitation' => null,
+            'forecast_wind_speed' => null,
+            'weather_source' => $observed['source'] ?? null,
+            'weather_source_breakdown' => $weatherContext['source_breakdown'] ?? [],
         ];
 
-        $recentWeather = WeatherData::forPlot($plot->id)
-            ->recent()
-            ->latest()
-            ->first();
-
-        if ($recentWeather) {
-            $factors['temperature'] = $recentWeather->temperature;
-            $factors['humidity'] = $recentWeather->humidity;
-            $factors['precipitation'] = $recentWeather->precipitation;
-            $factors['soil_moisture'] = $recentWeather->soil_moisture;
-            $factors['weather_observed_at'] = optional($recentWeather->recorded_at)->toIso8601String()
-                ?? optional($recentWeather->created_at)->toIso8601String();
-        }
+        $factors['temperature'] = $combined['temperature'] ?? $observed['temperature'] ?? null;
+        $factors['humidity'] = $combined['humidity'] ?? $observed['humidity'] ?? null;
+        $factors['precipitation'] = $combined['precipitation'] ?? $observed['precipitation'] ?? null;
+        $factors['soil_moisture'] = $combined['soil_moisture'] ?? $observed['soil_moisture'] ?? null;
+        $factors['weather_observed_at'] = $combined['recorded_at'] ?? $observed['recorded_at'] ?? null;
+        $factors['forecast_temperature'] = $forecast['temperature'] ?? null;
+        $factors['forecast_humidity'] = $forecast['humidity'] ?? null;
+        $factors['forecast_precipitation'] = $forecast['precipitation'] ?? null;
+        $factors['forecast_wind_speed'] = $forecast['wind_speed'] ?? null;
 
         $soilHealth = SoilHealth::forPlot($plot->id)
             ->recent()
@@ -213,6 +224,15 @@ class CropYieldPredictionService
             }
         }
 
+        if (($factors['forecast_temperature'] ?? null) !== null) {
+            $forecastTemp = (float) $factors['forecast_temperature'];
+            if ($forecastTemp > 33) {
+                $adjustmentFactor *= 0.97;
+            } elseif ($forecastTemp < 16) {
+                $adjustmentFactor *= 0.98;
+            }
+        }
+
         if ($factors['soil_ph'] !== null) {
             $ph = (float) $factors['soil_ph'];
             if ($ph < 5.5 || $ph > 7.8) {
@@ -231,6 +251,10 @@ class CropYieldPredictionService
             } elseif ($moisture > 80) {
                 $adjustmentFactor *= 0.82;
             }
+        }
+
+        if (($factors['forecast_precipitation'] ?? null) !== null && (float) $factors['forecast_precipitation'] >= 20) {
+            $adjustmentFactor *= 0.97;
         }
 
         if (is_array($factors['soil_nutrients'])) {
@@ -345,6 +369,11 @@ class CropYieldPredictionService
         if (($riskFlags['heat_stress'] ?? false) === true) {
             $recommendations[] =
                 'Reduce midday heat stress with shade support where practical and maintain steady watering.';
+        }
+
+        if (($riskFlags['wet_weather'] ?? false) === true) {
+            $recommendations[] =
+                'Prepare for wet conditions by improving drainage, reducing canopy wetness, and delaying nonessential field operations.';
         }
 
         if (($riskFlags['nutrient_gap'] ?? false) === true) {
@@ -478,16 +507,20 @@ class CropYieldPredictionService
         $temperature = $factors['temperature'] !== null ? (float) $factors['temperature'] : null;
         $soilMoisture = $factors['soil_moisture'] !== null ? (float) $factors['soil_moisture'] : null;
         $soilPh = $factors['soil_ph'] !== null ? (float) $factors['soil_ph'] : null;
+        $forecastTemperature = $factors['forecast_temperature'] !== null ? (float) $factors['forecast_temperature'] : null;
+        $forecastHumidity = $factors['forecast_humidity'] !== null ? (float) $factors['forecast_humidity'] : null;
+        $forecastPrecipitation = $factors['forecast_precipitation'] !== null ? (float) $factors['forecast_precipitation'] : null;
 
         return [
             'water_stress' => $soilMoisture !== null && $soilMoisture < 30,
-            'heat_stress' => $temperature !== null && $temperature > 33,
+            'heat_stress' => ($temperature !== null && $temperature > 33) || ($forecastTemperature !== null && $forecastTemperature > 33),
             'ph_stress' => $soilPh !== null && ($soilPh < 5.5 || $soilPh > 7.8),
             'nutrient_gap' =>
                 (($nutrients['nitrogen'] ?? 9999) < 35)
                 || (($nutrients['phosphorus'] ?? 9999) < 18)
                 || (($nutrients['potassium'] ?? 9999) < 90),
             'late_cycle' => is_numeric($progress) && (float) $progress > 100,
+            'wet_weather' => ($forecastHumidity !== null && $forecastHumidity >= 82) || (($forecastPrecipitation ?? 0) >= 20),
         ];
     }
 

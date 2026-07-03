@@ -65,20 +65,20 @@ class DelegationOverview extends Page implements HasTable
                     ->limit(42),
 
                 Tables\Columns\TextColumn::make('admin_level')
-                    ->label('Delegation Level')
+                    ->label('Office Level')
                     ->badge()
                     ->sortable()
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('region.name')
-                    ->label('Primary Region')
+                    ->label('Primary Administrative Unit')
                     ->sortable()
                     ->placeholder('-')
                     ->wrap()
                     ->limit(36),
 
                 Tables\Columns\TextColumn::make('scoped_regions_count')
-                    ->label('Extra Scopes')
+                    ->label('Extra Administrative Scopes')
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_active')
@@ -98,17 +98,17 @@ class DelegationOverview extends Page implements HasTable
 
                 Tables\Filters\SelectFilter::make('region')
                     ->relationship('region', 'name')
-                    ->label('Primary Region'),
+                    ->label('Primary Administrative Unit'),
 
                 Tables\Filters\SelectFilter::make('admin_level')
                     ->options([
                         'national' => 'National',
-                        'region' => 'Region',
+                        'region' => 'Regional State',
                         'zone' => 'Zone',
                         'woreda' => 'Woreda',
                         'kebele' => 'Kebele',
                     ])
-                    ->label('Delegation Level'),
+                    ->label('Office Level'),
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active'),

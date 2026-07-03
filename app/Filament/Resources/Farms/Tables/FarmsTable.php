@@ -24,7 +24,7 @@ class FarmsTable
                     ->limit(32),
 
                 Tables\Columns\TextColumn::make('region.name')
-                    ->label('Region')
+                    ->label('Administrative Unit')
                     ->sortable()
                     ->wrap()
                     ->limit(36),

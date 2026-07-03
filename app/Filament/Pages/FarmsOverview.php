@@ -63,13 +63,13 @@ class FarmsOverview extends Page implements HasTable
                 Tables\Columns\TextColumn::make('farmer.name')
                     ->label('Farmer')
                     ->searchable()
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->wrap()
                     ->limit(32),
 
                 Tables\Columns\TextColumn::make('region.name')
-                    ->label('Location')
-                    ->placeholder('—')
+                    ->label('Administrative Unit')
+                    ->placeholder('-')
                     ->wrap()
                     ->limit(36),
 
@@ -99,20 +99,20 @@ class FarmsOverview extends Page implements HasTable
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-    ->label('Created')
-    ->date()
-    ->sortable()
-    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Created')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-    Tables\Filters\SelectFilter::make('region')
-        ->relationship('region', 'name')
-        ->label('Region'),
+                Tables\Filters\SelectFilter::make('region')
+                    ->relationship('region', 'name')
+                    ->label('Administrative Unit'),
 
-    Tables\Filters\TernaryFilter::make('is_active')
-        ->label('Active'),
-])
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Active'),
+            ])
 
             ->paginated([10, 25, 50]);
     }

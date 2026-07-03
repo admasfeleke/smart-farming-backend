@@ -208,12 +208,20 @@ class DiseaseReport extends Model
         $metadata = is_array($this->scan_metadata) ? $this->scan_metadata : [];
         $status = strtolower(trim((string) $this->status));
 
-        if (
-            in_array($status, ['confirmed', 'verified'], true)
-            || $this->verified_at !== null
-            || $this->reviewed_at !== null
-        ) {
+        if (in_array($status, ['confirmed', 'verified'], true) || $this->verified_at !== null) {
             return 'verified';
+        }
+
+        if ($status === 'rejected') {
+            return 'rejected';
+        }
+
+        if ($status === 'processing') {
+            return $this->escalated_to_user_id !== null ? 'expert review' : 'supporter review';
+        }
+
+        if ($status === 'reviewing' || $status === 'new') {
+            return 'supporter review';
         }
 
         if ($this->meaningfulDisplayName($this->disease_name) !== null) {
@@ -229,6 +237,40 @@ class DiseaseReport extends Model
         }
 
         return 'pending';
+    }
+
+    public function farmerVisibleStatusKey(): string
+    {
+        $status = strtolower(trim((string) $this->status));
+
+        if (in_array($status, ['confirmed', 'verified'], true) || $this->verified_at !== null) {
+            return 'confirmed';
+        }
+
+        if ($status === 'rejected') {
+            return 'rejected';
+        }
+
+        if ($status === 'processing') {
+            return $this->escalated_to_user_id !== null ? 'under_expert_review' : 'under_supporter_review';
+        }
+
+        if ($status === 'reviewing' || $status === 'new') {
+            return 'under_supporter_review';
+        }
+
+        return 'awaiting_analysis';
+    }
+
+    public function farmerVisibleStatusLabel(): string
+    {
+        return match ($this->farmerVisibleStatusKey()) {
+            'confirmed' => 'Confirmed',
+            'rejected' => 'Rejected',
+            'under_expert_review' => 'Under expert review',
+            'under_supporter_review' => 'Under supporter review',
+            default => 'Awaiting analysis',
+        };
     }
 
     public function backofficeFindingConfidence(): ?float

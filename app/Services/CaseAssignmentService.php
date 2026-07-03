@@ -28,6 +28,37 @@ class CaseAssignmentService
         );
     }
 
+    public function escalateDiseaseReportToExpert(
+        DiseaseReport $report,
+        User $assignedBy,
+        ?string $note = null,
+    ): ?CaseAssignment {
+        $report->loadMissing('plot.farm');
+        $regionId = $report->plot?->farm?->region_id;
+
+        $assignee = $this->bestReviewerForRegion($regionId, ['expert']);
+        if (! $assignee instanceof User) {
+            Log::warning('Disease case escalation failed: no expert available for region', [
+                'case_id' => $report->id,
+                'region_id' => $regionId,
+            ]);
+
+            return null;
+        }
+
+        return DB::transaction(function () use ($report, $assignedBy, $note, $assignee): ?CaseAssignment {
+            $this->closeActiveAssignments('disease_report', (int) $report->id);
+
+            return $this->assignDiseaseReport(
+                $report,
+                $assignee,
+                $assignedBy,
+                'high',
+                $note ?? 'Escalated to expert for final review.',
+            );
+        });
+    }
+
     public function autoAssignSoilHealth(SoilHealth $soilHealth): ?CaseAssignment
     {
         $soilHealth->loadMissing('plot.farm');

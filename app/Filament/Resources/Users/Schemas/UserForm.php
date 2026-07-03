@@ -60,7 +60,7 @@ class UserForm
                         }),
 
                     \Filament\Forms\Components\Select::make('region_id')
-                        ->label('Primary Region')
+                        ->label('Primary Administrative Unit')
                         ->options(fn (callable $get): array => self::availablePrimaryRegionOptions(
                             $get('role_id'),
                             $get('admin_level')
@@ -71,13 +71,13 @@ class UserForm
                         ->required(fn (callable $get): bool => self::roleNeedsRegion($get('role_id'))),
 
                     \Filament\Forms\Components\Select::make('scopedRegions')
-                        ->label('Additional Region Scopes')
+                        ->label('Additional Administrative Scopes')
                         ->options(fn (callable $get): array => self::availableScopedRegionOptions($get('region_id')))
                         ->multiple()
                         ->searchable()
                         ->preload()
                         ->visible(fn (callable $get): bool => self::isBackofficeRoleId($get('role_id')))
-                        ->helperText('Delegate extra zones, special woredas, woredas, kebeles, or FTCs under the selected primary region.'),
+                        ->helperText('Delegate extra zones, special woredas, woredas, kebeles, or FTCs under the selected primary administrative unit.'),
 
                     \Filament\Forms\Components\Toggle::make('is_active')
                         ->label('Active')

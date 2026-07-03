@@ -305,7 +305,7 @@
                     <div class="review-kv-value">{{ $record->plot?->plot_name ?? '-' }}</div>
                 </div>
                 <div class="review-kv">
-                    <div class="review-kv-label">Region</div>
+                    <div class="review-kv-label">Administrative Unit</div>
                     <div class="review-kv-value">{{ $record->plot?->farm?->region?->name ?? '-' }}</div>
                 </div>
             </div>

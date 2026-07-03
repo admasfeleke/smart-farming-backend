@@ -189,6 +189,7 @@ class WeatherDataController extends Controller
             $query->whereBetween('recorded_at', [$startDate, $endDate]);
         }
 
+        $sourceBreakdownQuery = clone $query;
         $summary = $query->selectRaw('
             AVG(temperature) as avg_temperature,
             MIN(temperature) as min_temperature,
@@ -201,8 +202,25 @@ class WeatherDataController extends Controller
             MAX(recorded_at) as latest_recorded_at
         ')->first();
 
+        $sourceBreakdown = $sourceBreakdownQuery
+            ->selectRaw('
+                data_source,
+                COUNT(*) as records,
+                MAX(recorded_at) as latest_recorded_at
+            ')
+            ->groupBy('data_source')
+            ->orderByDesc('records')
+            ->get()
+            ->map(fn ($item) => [
+                'data_source' => $item->data_source,
+                'records' => (int) $item->records,
+                'latest_recorded_at' => $item->latest_recorded_at,
+            ])
+            ->values();
+
         return response()->json([
             'summary' => $summary,
+            'source_breakdown' => $sourceBreakdown,
             'analysis' => ApiLocalizer::localizeWeatherAnalysis(
                 $request,
                 $this->buildSummaryAnalysis($summary)
