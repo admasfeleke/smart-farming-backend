@@ -234,7 +234,7 @@
             <div class="review-panel p-4">
                 <div class="review-heading">{{ $record->backofficeFindingName() }}</div>
                 <div class="review-subtitle">
-                    {{ ucfirst($record->backofficeFindingStage()) }} diagnosis evidence for expert verification.
+                    {{ ucfirst($record->backofficeFindingStage()) }} diagnosis evidence for Subject Matter Specialist verification.
                 </div>
 
                 <div class="mt-4 review-kv-grid">

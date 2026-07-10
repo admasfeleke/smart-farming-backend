@@ -14,8 +14,8 @@
                         <th class="px-3 py-2 text-left font-semibold text-gray-700">Action</th>
                         <th class="px-3 py-2 text-left font-semibold text-gray-700">Super Admin</th>
                         <th class="px-3 py-2 text-left font-semibold text-gray-700">Admin</th>
-                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Supporter</th>
-                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Expert</th>
+                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Development Agent</th>
+                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Subject Matter Specialist</th>
                         <th class="px-3 py-2 text-left font-semibold text-gray-700">Farmer</th>
                     </tr>
                 </thead>

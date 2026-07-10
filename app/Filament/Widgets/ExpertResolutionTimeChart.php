@@ -22,7 +22,7 @@ class ExpertResolutionTimeChart extends ChartWidget
 
     public function getHeading(): string
     {
-        return 'Expert Case Resolution Time (Last 6 Months)';
+        return 'Subject Matter Specialist Case Resolution Time (Last 6 Months)';
     }
 
     public function getDescription(): ?string
@@ -33,7 +33,7 @@ class ExpertResolutionTimeChart extends ChartWidget
         }
 
         return RegionScope::isSuperAdmin($user)
-            ? 'Average hours from case assignment to completion by experts, with SLA breach rate'
+            ? 'Average hours from case assignment to completion by Subject Matter Specialists, with SLA breach rate'
             : 'Average hours from assignment to your completed cases, with SLA breach rate';
     }
 
@@ -55,16 +55,16 @@ class ExpertResolutionTimeChart extends ChartWidget
             ->whereNotNull('completed_at')
             ->whereBetween('completed_at', [$start, $end]);
 
-        // For experts: scope to their own assignments only.
+        // For Subject Matter Specialists: scope to their own assignments only.
         if (! $isSuperAdmin) {
             $base->where('assigned_to_user_id', $user->id);
         } else {
             // For super_admin: scope to expert-role users only so we measure
-            // expert performance specifically, not all backoffice users.
+            // Subject Matter Specialist performance specifically, not all backoffice users.
             $base->whereHas('assignedTo.role', fn ($q) => $q->where('name', 'expert'));
         }
 
-        // Apply region scope for non-super-admins (experts see their region's cases).
+        // Apply region scope for non-super-admins (Subject Matter Specialists see their region's cases).
         if (! $isSuperAdmin) {
             $regionIds = RegionScope::accessibleRegionIds($user);
             if ($regionIds === []) {
@@ -86,7 +86,7 @@ class ExpertResolutionTimeChart extends ChartWidget
             ->orderBy('month')
             ->pluck('avg_hours', 'month');
 
-        // Query 2: SLA breach rate per month — % of completed cases that finished
+        // Query 2: SLA breach rate per month â€” % of completed cases that finished
         // after their due_at deadline. Only cases that had a due_at set are counted.
         $slaStats = (clone $base)
             ->whereNotNull('due_at')
@@ -108,7 +108,7 @@ class ExpertResolutionTimeChart extends ChartWidget
             $monthKey = Carbon::now()->subMonths($i)->format('Y-m');
             $labels[] = Carbon::now()->subMonths($i)->format('M');
 
-            // Use ->get() instead of direct array access — Collection throws on
+            // Use ->get() instead of direct array access â€” Collection throws on
             // missing keys, whereas ->get() safely returns null.
             $hours = $avgHours->get($monthKey);
             $avgHoursData[] = $hours !== null ? round((float) $hours, 1) : 0;

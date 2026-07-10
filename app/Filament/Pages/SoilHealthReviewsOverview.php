@@ -193,7 +193,7 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                         $user = auth()->user();
 
                         return $user instanceof User && RegionScope::roleName($user) === 'supporter'
-                            ? 'Escalate to Expert'
+                            ? 'Refer to Subject Matter Specialist'
                             : 'Assign';
                     })
                     ->icon('heroicon-o-user-plus')
@@ -202,7 +202,7 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                     ->visible(fn (SoilHealth $record): bool => $this->canAssignSoilRecord($record))
                     ->form(fn (SoilHealth $record): array => [
                         Select::make('assigned_to_user_id')
-                            ->label('Assign To')
+                            ->label('Assign to Officer')
                             ->searchable()
                             ->required()
                             ->options(function () use ($record) {
@@ -301,8 +301,8 @@ class SoilHealthReviewsOverview extends Page implements HasTable
                             ->options([
                                 'evidence_consistent' => 'Evidence is consistent',
                                 'field_measurement_verified' => 'Field measurement verified',
-                                'supporter_confirmed' => 'Supporter confirmed',
-                                'expert_confirmed' => 'Expert confirmed',
+                                'supporter_confirmed' => 'Development Agent confirmed',
+                                'expert_confirmed' => 'Subject Matter Specialist confirmed',
                             ]),
                         Textarea::make('review_comment')
                             ->label('Reviewer Comment')

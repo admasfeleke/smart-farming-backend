@@ -68,7 +68,7 @@ class EditUser extends EditRecord
             Notification::make()
                 ->warning()
                 ->title('Delegation Changed For Active Operational Account')
-                ->body('Supporter/Expert assignment changed. Ensure workload handover and regional coverage are still valid.')
+                ->body('Development Agent / Subject Matter Specialist assignment changed. Ensure workload handover and regional coverage are still valid.')
                 ->send();
         }
     }

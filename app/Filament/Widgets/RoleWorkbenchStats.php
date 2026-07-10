@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\CaseAssignment;
 use App\Models\DiseaseReport;
 use App\Models\User;
+use App\Support\BureaucracyProfile;
 use App\Support\RegionScope;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -27,9 +28,7 @@ class RoleWorkbenchStats extends StatsOverviewWidget
             return null;
         }
 
-        return RegionScope::roleName($user) === 'expert'
-            ? 'Expert Workbench'
-            : 'Supporter Workbench';
+        return BureaucracyProfile::displayTitleFor($user).' Workbench';
     }
 
     protected function getStats(): array

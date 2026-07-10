@@ -300,7 +300,7 @@ class DiseaseReportsOverview extends Page implements HasTable
                             ->required()
                             ->options([
                                 'visual_match' => 'Visual match',
-                                'expert_confirmed' => 'Expert confirmed',
+                                'expert_confirmed' => 'Subject Matter Specialist confirmed',
                                 'field_pattern_match' => 'Field pattern match',
                             ]),
                         Textarea::make('decision_comment')
@@ -357,7 +357,7 @@ class DiseaseReportsOverview extends Page implements HasTable
                         $user = auth()->user();
 
                         return $user instanceof User && RegionScope::roleName($user) === 'supporter'
-                            ? 'Escalate to Expert'
+                            ? 'Refer to Subject Matter Specialist'
                             : 'Assign';
                     })
                     ->icon('heroicon-o-user-plus')
@@ -366,7 +366,7 @@ class DiseaseReportsOverview extends Page implements HasTable
                     ->visible(fn (DiseaseReport $record): bool => $this->canAssignReport($record))
                     ->form(fn (DiseaseReport $record): array => [
                         Select::make('assigned_to_user_id')
-                            ->label('Assign To')
+                            ->label('Assign to Officer')
                             ->searchable()
                             ->required()
                             ->options(function () use ($record) {

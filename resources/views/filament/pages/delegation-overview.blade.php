@@ -131,26 +131,26 @@
 
         <div class="delegation-kpi-card kpi-danger">
             <div class="delegation-kpi-head">
-                <p class="delegation-kpi-title">Supporters</p>
+                <p class="delegation-kpi-title">Development Agents</p>
                 <x-filament::icon icon="heroicon-o-wrench-screwdriver" class="delegation-kpi-icon" />
             </div>
-            <p class="delegation-kpi-value">{{ $summary['supporters'] ?? 0 }}</p>
+            <p class="delegation-kpi-value">{{ $summary['development_agents'] ?? 0 }}</p>
         </div>
 
         <div class="delegation-kpi-card kpi-indigo">
             <div class="delegation-kpi-head">
-                <p class="delegation-kpi-title">Experts</p>
+                <p class="delegation-kpi-title">Subject Matter Specialists</p>
                 <x-filament::icon icon="heroicon-o-academic-cap" class="delegation-kpi-icon" />
             </div>
-            <p class="delegation-kpi-value">{{ $summary['experts'] ?? 0 }}</p>
+            <p class="delegation-kpi-value">{{ $summary['subject_matter_specialists'] ?? 0 }}</p>
         </div>
     </div>
 
     <x-filament::section class="mt-4">
         <div class="text-sm text-gray-600">
             Ethiopia governance scope: Federal (National) to Regional, Zone, Woreda, and Kebele.
-            This panel is for backoffice delegation only (super admin, admin, supporter, expert).
-            Farmer accounts remain operational/mobile users and are created by admins via standard user management.
+            This panel is for backoffice delegation only (System Super Administrator, Agriculture Office Coordinator, Development Agent, Subject Matter Specialist).
+            Farmer accounts remain operational/mobile users and are created by Agriculture Office Coordinators via standard user management.
         </div>
     </x-filament::section>
 

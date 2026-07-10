@@ -47,7 +47,8 @@ class DelegationOverview extends Page implements HasTable
                     ->limit(36),
 
                 Tables\Columns\TextColumn::make('role.name')
-                    ->label('Role')
+                    ->label('Public-Sector Role')
+                    ->formatStateUsing(fn (?string $state): string => BureaucracyProfile::roleLabelFor($state))
                     ->badge()
                     ->colors([
                         'danger' => 'super_admin',
@@ -94,7 +95,7 @@ class DelegationOverview extends Page implements HasTable
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->relationship('role', 'name')
-                    ->label('Role'),
+                    ->label('Public-Sector Role'),
 
                 Tables\Filters\SelectFilter::make('region')
                     ->relationship('region', 'name')
@@ -153,10 +154,10 @@ class DelegationOverview extends Page implements HasTable
                 'active_users' => (clone $allUsersQuery)->where('users.is_active', 1)->count(),
                 'backoffice_users' => (clone $backofficeQuery)->count(),
                 'farmers' => (int) ($roleCounts['farmer'] ?? 0),
-                'super_admins' => (int) ($roleCounts['super_admin'] ?? 0),
-                'admins' => (int) ($roleCounts['admin'] ?? 0),
-                'supporters' => (int) ($roleCounts['supporter'] ?? 0),
-                'experts' => (int) ($roleCounts['expert'] ?? 0),
+                'system_super_administrators' => (int) ($roleCounts['super_admin'] ?? 0),
+                'agriculture_office_coordinators' => (int) ($roleCounts['admin'] ?? 0),
+                'development_agents' => (int) ($roleCounts['supporter'] ?? 0),
+                'subject_matter_specialists' => (int) ($roleCounts['expert'] ?? 0),
             ],
         ];
     }

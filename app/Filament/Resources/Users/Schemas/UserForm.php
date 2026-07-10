@@ -59,6 +59,19 @@ class UserForm
                             $set('scopedRegions', []);
                         }),
 
+                    \Filament\Forms\Components\Select::make('technical_domain')
+                        ->label('Technical Domain')
+                        ->options(fn (): array => self::technicalDomainOptions())
+                        ->searchable()
+                        ->visible(fn (callable $get): bool => self::roleName($get('role_id')) === 'expert')
+                        ->helperText('Used to derive real SMS titles such as Crop Protection Specialist or Soil Health Specialist.'),
+
+                    \Filament\Forms\Components\TextInput::make('position_title')
+                        ->label('Specific Position Title')
+                        ->maxLength(160)
+                        ->visible(fn (callable $get): bool => self::isBackofficeRoleId($get('role_id')))
+                        ->helperText('Optional. If provided, this exact public-sector title is shown instead of the derived title.'),
+
                     \Filament\Forms\Components\Select::make('region_id')
                         ->label('Primary Office Scope')
                         ->options(fn (callable $get): array => self::availablePrimaryRegionOptions(
@@ -137,6 +150,17 @@ class UserForm
         return app(DelegationGuard::class)->availableScopedRegionOptions($actor, $primaryId);
     }
 
+    private static function technicalDomainOptions(): array
+    {
+        return collect((array) config('central_ethiopia_bureaucracy.technical_domains', []))
+            ->mapWithKeys(fn ($label, $key): array => [(string) $key => (string) $label])
+            ->all();
+    }
+
+    private static function roleName($roleId): string
+    {
+        return app(DelegationGuard::class)->roleNameById((int) $roleId) ?? '';
+    }
     private static function roleNeedsRegion($roleId): bool
     {
         $name = app(DelegationGuard::class)->roleNameById((int) $roleId);

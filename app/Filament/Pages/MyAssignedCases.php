@@ -168,7 +168,7 @@ class MyAssignedCases extends Page implements HasTable
                             ->default('expert_confirmed')
                             ->options([
                                 'visual_match' => 'Visual match',
-                                'expert_confirmed' => 'Expert confirmed',
+                                'expert_confirmed' => 'Subject Matter Specialist confirmed',
                                 'field_pattern_match' => 'Field pattern match',
                             ]),
                         Textarea::make('decision_comment')

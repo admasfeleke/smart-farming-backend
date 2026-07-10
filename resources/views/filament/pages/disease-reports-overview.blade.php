@@ -270,13 +270,13 @@
         <div class="grid gap-5 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
             <div>
                 <div class="disease-review-hero-badge">
-                    Expert disease triage
+                    Crop disease triage
                 </div>
                 <h2 class="disease-review-hero-title mt-3 text-2xl font-black tracking-tight md:text-3xl">
                     Review crop disease evidence, not just records
                 </h2>
                 <p class="disease-review-hero-copy mt-2 text-sm font-medium leading-6">
-                    Each case combines farmer image evidence, offline provisional inference, server AI scores, crop context, and final expert decision.
+                    Each case combines farmer image evidence, offline provisional inference, server AI scores, crop context, and final Subject Matter Specialist decision.
                 </p>
             </div>
 
@@ -292,7 +292,7 @@
     <div class="disease-review-kpi-grid">
         <div class="disease-review-kpi disease-review-kpi-alert">
             <div class="disease-review-kpi-value text-amber-700">{{ number_format($stats['reviewing']) }}</div>
-            <div class="disease-review-kpi-label">Cases waiting for expert action</div>
+            <div class="disease-review-kpi-label">Cases waiting for SMS action</div>
             <div class="disease-review-kpi-meta">
                 <span>Queue load</span>
                 <span>{{ number_format($stats['total']) }} total</span>
@@ -349,7 +349,7 @@
         <div class="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
                 <div class="text-xs font-bold uppercase tracking-[.18em] text-emerald-700">Image-first triage board</div>
-                <h3 class="triage-board-title mt-1 text-xl font-black tracking-tight">Priority cases needing expert attention</h3>
+                <h3 class="triage-board-title mt-1 text-xl font-black tracking-tight">Priority cases needing SMS attention</h3>
                 <p class="triage-board-copy mt-1 text-sm">Large evidence previews make leaf quality, disease pattern, and AI uncertainty visible before opening the record.</p>
             </div>
             <div class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">

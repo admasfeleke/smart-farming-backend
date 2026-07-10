@@ -13,6 +13,7 @@ use App\Filament\Widgets\RoleWorkbenchStats;
 use App\Filament\Widgets\TopAffectedCropsChart;
 use App\Filament\Widgets\TopAffectedRegionsChart;
 use App\Models\User;
+use App\Support\BureaucracyProfile;
 use App\Support\RegionScope;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Widgets\AccountWidget;
@@ -31,10 +32,7 @@ class Dashboard extends BaseDashboard
         }
 
         return match (RegionScope::roleName($user)) {
-            'super_admin' => 'Super Admin Workbench',
-            'admin' => 'Regional Admin Workbench',
-            'supporter' => 'Supporter Workbench',
-            'expert' => 'Expert Workbench',
+            'super_admin', 'admin', 'supporter', 'expert' => BureaucracyProfile::displayTitleFor($user).' Workbench',
             default => 'Dashboard',
         };
     }
